@@ -1,13 +1,8 @@
+
 import type { Metadata } from "next";
 import { Navbar } from "./components/layout/Navbar";
-import { Hero } from "./components/landing/Hero";
-import { HowItWorks } from "./components/landing/HowItWorks";
-import { PersonalShopper } from "./components/landing/PersonalShopper";
-import { WhyOppapost } from "./components/landing/WhyOppapost";
-import { FinalCta } from "./components/landing/FinalCta";
 import { Footer } from "./components/layout/Footer";
-import { ShippingSection } from "./components/landing/ShippingSection";
-
+import { LandingPage } from "./components/landing/LandingPage";
 
 export const metadata: Metadata = {
   title: "Korean Package Forwarding & Personal Shopper",
@@ -36,12 +31,7 @@ export default function Home() {
       <Navbar />
 
       <main>
-        <Hero />
-        <HowItWorks />
-        <PersonalShopper />
-        <WhyOppapost />
-        <ShippingSection />
-        <FinalCta />
+        <LandingPage />
       </main>
 
       <Footer />

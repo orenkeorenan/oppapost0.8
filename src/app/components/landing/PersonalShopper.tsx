@@ -9,7 +9,13 @@ const categories = [
   { icon: Gift, label: "Collectibles" },
 ];
 
-export function PersonalShopper() {
+type PersonalShopperProps = {
+  onRequest?: () => void;
+};
+
+export function PersonalShopper({
+  onRequest,
+}: PersonalShopperProps) {
   return (
     <section id="personal-shopper" className="section section--cream">
       <div className="container shopper__layout">
@@ -28,6 +34,7 @@ export function PersonalShopper() {
           <button
             type="button"
             className="button button--brand shopper__button"
+            onClick={onRequest}
           >
             Request a Personal Shopper <ArrowRight className="icon icon--sm" aria-hidden="true" />
           </button>

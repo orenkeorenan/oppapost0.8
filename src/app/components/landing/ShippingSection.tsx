@@ -1,5 +1,9 @@
 import { ArrowRight, Check } from "lucide-react";
 
+type ShippingSectionProps = {
+  onCalculate?: () => void;
+};
+
 const options = [
   {
     name: "EMS",
@@ -16,7 +20,9 @@ const options = [
   },
 ];
 
-export function ShippingSection() {
+export function ShippingSection({
+  onCalculate,
+}: ShippingSectionProps) {
   return (
     <section id="shipping" className="section section--sky">
       <div className="container shipping__layout">
@@ -31,6 +37,7 @@ export function ShippingSection() {
           <button
             type="button"
             className="button button--brand shipping__button"
+            onClick={onCalculate}
           >
             Check Shipping Rates <ArrowRight className="icon icon--sm" aria-hidden="true" />
           </button>
