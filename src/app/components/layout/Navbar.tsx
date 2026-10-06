@@ -14,7 +14,7 @@ export function Navbar({ onAddress }: NavbarProps) {
 const links = [
   { label: "Shipping", href: "#shipping" },
   { label: "Personal Shopper", href: "#personal-shopper" },
-  { label: "Contact", href: "#contact" },
+  { label: "Help Center", href: "#contact" },
 ];
 
   const [open, setOpen] = useState(false);
@@ -55,7 +55,7 @@ const links = [
               className="button button--brand navbar__address navbar__desktop-action"
               onClick={onAddress}
             >
-              Get Korean Address
+              Get Yours Korean Address
               <ArrowRight className="icon icon--sm" aria-hidden="true" />
             </button>
             <button
