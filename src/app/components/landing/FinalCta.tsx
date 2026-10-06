@@ -1,7 +1,13 @@
 
-export function FinalCta() {
+type FinalCtaProps = {
+  onAddress: () => void;
+};
+
+export function FinalCta({
+  onAddress,
+}: FinalCtaProps) {
   return (
-    <section className="final-cta">
+    <section className="final-cta" id="contact">
       <img
         src="/assets/korea-skyline.jpg"
         alt="Korean coastal city skyline at dusk"
@@ -19,12 +25,13 @@ export function FinalCta() {
           Your favorite stores. A trusted warehouse. A bigger world.
         </p>
         <div className="final-cta__actions">
-          <button
-            type="button"
-            className="button button--brand final-cta__button"
+          <a
+            href="#top"
+            className="button button--brand"
+            onClick={onAddress}
           >
             Get Your Korean Address
-          </button>
+          </a>
           <button
             type="button"
             className="button button--light-outline final-cta__button"

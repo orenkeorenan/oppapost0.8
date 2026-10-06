@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Home, Package, Plane, Search } from "lucide-react";
+import { ArrowRight, Home, Package, Plane, Search } from "lucide-react";
 import { ShippingEstimateCard } from "../shipping/ShippingEstimateCard";
 import { Popup } from "../ui/popup/Popup";
 import { TrackShipmentCard } from "../shipping/TrackShipmentCard";
@@ -35,7 +35,7 @@ export function Hero({ onCalculate }: HeroProps) {
 				<div className="hero__layout">
 					<div className="hero__copy">
 						<span className="hero__badge">
-						<span aria-hidden="true">🇰🇷</span> Your Connection to Korea
+						<span aria-hidden="true">🇰🇷</span> Your Gateway to Korea
 						</span>
 
 						<h1 className="hero__title">
@@ -45,8 +45,8 @@ export function Hero({ onCalculate }: HeroProps) {
 						</h1>
 
 						<p className="hero__description">
-							Shop from any Korean store. Send your purchases to your Oppapost address. We receive,
-							combine, and ship to you worldwide.
+							“Shop from any Korean store. Send your purchases to our warehouse. 
+							We receive, combine, and ship them to you worldwide.”
 						</p>
 
 						<button
@@ -86,21 +86,7 @@ export function Hero({ onCalculate }: HeroProps) {
 					</div>
 
 					<div className="hero__estimate-wrap">
-						<div className="status-card">
-							<span className="status-card__icon-wrap">
-								<Package className="icon icon--sm text-brand" aria-hidden="true" />
-							</span>
-							<div className="min-width-zero">
-								<p className="hero__indicator-title">Package received</p>
-								<p className="status-card__detail">
-									<CheckCircle2 className="icon icon--xs text-brand" aria-hidden="true" />
-									Ready for inspection
-								</p>
-							</div>
-						</div>
-						<ShippingEstimateCard
-							onCalculate={onCalculate}
-						/>
+						<ShippingEstimateCard onCalculate={onCalculate} />
 					</div>
 				</div>
 			</div>

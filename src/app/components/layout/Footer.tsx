@@ -1,6 +1,12 @@
 import { Globe } from "lucide-react";
 import { Logo } from "../landing/Logo";
 
+const footerLinks = [
+  { label: "Shipping", href: "#shipping" },
+  { label: "Personal Shopper", href: "#personal-shopper" },
+  { label: "Contact", href: "#contact" },
+];
+
 export function Footer() {
   return (
     <footer id="contact" className="footer">
@@ -12,13 +18,13 @@ export function Footer() {
             className="footer__nav"
             aria-label="Footer navigation"
           >
-            {["Shipping", "Personal Shopper", "Contact"].map((l) => (
+            {footerLinks.map((link) => (
               <a
-                key={l}
-                href="#top"
+                key={link.label}
+                href={link.href}
                 className="footer__link"
               >
-                {l}
+                {link.label}
               </a>
             ))}
           </nav>

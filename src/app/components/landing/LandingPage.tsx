@@ -11,8 +11,13 @@ import { Popup } from "../ui/popup/Popup";
 import { ShippingCalculator } from "../shipping/ShippingCalculator";
 import { PersonalShopperRequest } from "../shopping/PersonalShopperRequest";
 
+type LandingPageProps = {
+  onAddress: () => void;
+};
 
-export function LandingPage() {
+export function LandingPage({
+  onAddress,
+}: LandingPageProps) {
   const [isEstimateOpen, setIsEstimateOpen] = useState(false);
   const [isShopperOpen, setIsShopperOpen] = useState(false);
   const [isAddressOpen, setIsAddressOpen] = useState(false);
@@ -36,7 +41,9 @@ export function LandingPage() {
         onCalculate={() => setIsEstimateOpen(true)}
       />
 
-      <FinalCta />
+      <FinalCta 
+        onAddress={onAddress}
+      />
 
       <Popup
         isOpen={isEstimateOpen}

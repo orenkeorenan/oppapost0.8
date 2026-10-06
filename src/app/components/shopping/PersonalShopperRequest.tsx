@@ -107,6 +107,7 @@ export function PersonalShopperRequest() {
                 }
                 placeholder="e.g. Laneige Lip Sleeping Mask"
                 className="form-input"
+                required
               />
             </div>
 
@@ -120,13 +121,14 @@ export function PersonalShopperRequest() {
 
               <input
                 id={`product-url-${index}`}
-                type="url"
+                type="text"
                 value={product.url}
                 onChange={(e) =>
                   updateProduct(index, "url", e.target.value)
                 }
                 placeholder="https://..."
                 className="form-input"
+                required
               />
             </div>
           </div>

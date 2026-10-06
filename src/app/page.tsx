@@ -1,8 +1,6 @@
 
 import type { Metadata } from "next";
-import { Navbar } from "./components/layout/Navbar";
-import { Footer } from "./components/layout/Footer";
-import { LandingPage } from "./components/landing/LandingPage";
+import { SiteShell } from "./components/layout/SiteShell";
 
 export const metadata: Metadata = {
   title: "Korean Package Forwarding & Personal Shopper",
@@ -27,14 +25,6 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="site-page">
-      <Navbar />
-
-      <main>
-        <LandingPage />
-      </main>
-
-      <Footer />
-    </div>
+    <SiteShell/>
   );
 }

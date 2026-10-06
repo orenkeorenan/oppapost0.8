@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { ArrowRight, Menu, User, X } from "lucide-react";
 import { Logo } from "../landing/Logo";
-import { Popup } from "../ui/popup/Popup";
+import { Popup } from './../ui/popup/Popup';
+
+type NavbarProps = {
+  onAddress: () => void;
+};
+
+export function Navbar({ onAddress }: NavbarProps) {
 
 const links = [
   { label: "Shipping", href: "#shipping" },
@@ -11,13 +17,11 @@ const links = [
   { label: "Contact", href: "#contact" },
 ];
 
-export function Navbar() {
   const [open, setOpen] = useState(false);
-  const [isAddressOpen, setIsAddressOpen] = useState(false);
+  const [isLoginOpen,setIsLoginOpen] = useState(false);
 
   return (
     <>
-    
       <header className="navbar">
         <div className="navbar__inner">
           <div className="navbar__brand-group">
@@ -40,21 +44,24 @@ export function Navbar() {
           <div className="navbar__actions">
             <button
               type="button"
-              className="button button--outline navbar__login"
+              className="button button--outline navbar__login navbar__desktop-action"
+              onClick={() => setIsLoginOpen(true)}
+
             >
               <User className="icon icon--sm" aria-hidden="true" /> Login
             </button>
             <button
               type="button"
-              className="button button--brand navbar__address"
-              onClick={() => setIsAddressOpen(true)}
+              className="button button--brand navbar__address navbar__desktop-action"
+              onClick={onAddress}
             >
               Get Korean Address
               <ArrowRight className="icon icon--sm" aria-hidden="true" />
             </button>
             <button
               type="button"
-              aria-label="Toggle menu"
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
               className="navbar__menu-button"
             >
@@ -83,6 +90,7 @@ export function Navbar() {
               <button
                 type="button"
                 className="button button--outline"
+                onClick={() => setIsLoginOpen(true)}
               >
                 Login
               </button>
@@ -90,7 +98,7 @@ export function Navbar() {
                 type="button"
                 className="button button--brand"
                 onClick={() => {
-                  setIsAddressOpen(true);
+                  onAddress();
                   setOpen(false);
                 }}
               >
@@ -101,23 +109,22 @@ export function Navbar() {
         ) : null}
       </header>
       <Popup
-        isOpen={isAddressOpen}
-        onClose={() => setIsAddressOpen(false)}
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
       >
         <div>
-          <h2>Get Your Korean Address</h2>
-
+          <h2>Login</h2>
           <p>
-            Get your personal Korean address and start receiving
-            packages through Oppapost.
+            Account login is coming soon. You’ll be able to manage
+            your Korean address, shipments, and requests here.
           </p>
 
           <button
             type="button"
             className="button button--brand"
-            onClick={() => setIsAddressOpen(false)}
+            onClick={() => setIsLoginOpen(false)}
           >
-            Get Started
+            Got It
           </button>
         </div>
       </Popup>

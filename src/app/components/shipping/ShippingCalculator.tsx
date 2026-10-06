@@ -14,6 +14,32 @@ const countries = [
 export function ShippingCalculator() {
   const [country, setCountry] = useState(countries[0]);
   const [weight, setWeight] = useState("");
+  const [estimatedFee, setEstimatedFee] = useState<number | null>(null);
+
+  const calculateEstimate = () => {
+    const numericWeight = Number(weight);
+
+    if (!numericWeight || numericWeight <= 0) {
+      setEstimatedFee(null);
+      return;
+    }
+
+    const countryRate: Record<string, number> = {
+      Indonesia: 12000,
+      "United States": 18000,
+      Japan: 10000,
+      Singapore: 11000,
+      Australia: 16000,
+    };
+
+    const baseRate = countryRate[country] ?? 12000;
+
+    const fee = Math.round(
+      baseRate + numericWeight * 6250
+    );
+
+    setEstimatedFee(fee);
+  };
 
   return (
     <div className="shipping-calculator">
@@ -88,11 +114,15 @@ export function ShippingCalculator() {
           </p>
 
           <p className="shipping-calculator__price">
-            ₩24,500
+            {estimatedFee !== null
+              ? `₩${estimatedFee.toLocaleString()}`
+              : "—"}
           </p>
 
           <p className="body-muted">
-            ≈ IDR 260,000
+            {estimatedFee !== null
+              ? `≈ IDR ${Math.round(estimatedFee * 10.6).toLocaleString()}`
+              : "Enter your weight to calculate"}
           </p>
 
           <p className="shipping-calculator__disclaimer">
@@ -104,6 +134,7 @@ export function ShippingCalculator() {
         <button
           type="button"
           className="button button--brand"
+          onClick={calculateEstimate}
         >
           Calculate Estimate
         </button>
