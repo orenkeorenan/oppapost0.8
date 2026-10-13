@@ -1,6 +1,35 @@
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../../components/account/AccountLayout";
 
-export default function WarehousePage() {
+export default async function WarehousePage() {
+  const sessionUser = await requireUser();
+
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUser.id },
+    include: {
+      packages: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+
+  const packages = user?.packages ?? [];
+
+  const incomingCount = packages.filter(
+    (pkg) => pkg.status === "INCOMING"
+  ).length;
+
+  const warehouseWeight = packages
+    .filter((pkg) =>
+      ["RECEIVED", "READY_TO_SHIP"].includes(pkg.status)
+    )
+    .reduce((total, pkg) => total + pkg.weight, 0);
+
+  const readyToShipWeight = packages
+    .filter((pkg) => pkg.status === "READY_TO_SHIP")
+    .reduce((total, pkg) => total + pkg.weight, 0);
+
   return (
     <AccountLayout>
       <div className="account-dashboard">
@@ -15,19 +44,19 @@ export default function WarehousePage() {
           <div className="warehouse-stats">
             <div className="warehouse-stat">
               <span>Incoming</span>
-              <strong>2</strong>
+              <strong>{incomingCount}</strong>
               <small>packages</small>
             </div>
 
             <div className="warehouse-stat">
               <span>In Warehouse</span>
-              <strong>5.0 kg</strong>
+              <strong>{warehouseWeight.toFixed(1)} kg</strong>
               <small>stored weight</small>
             </div>
 
             <div className="warehouse-stat">
               <span>Ready to Ship</span>
-              <strong>5.0 kg</strong>
+              <strong>{readyToShipWeight.toFixed(1)} kg</strong>
               <small>available to ship</small>
             </div>
           </div>
@@ -36,29 +65,34 @@ export default function WarehousePage() {
         <section>
           <h2>Your Packages</h2>
 
-          <div className="warehouse-package">
-            <div>
-              <strong>KR123456789</strong>
-              <p>Received · Oct 8</p>
-            </div>
+          {packages.length === 0 ? (
+            <p>No packages found.</p>
+          ) : (
+            packages.map((pkg) => (
+              <div className="warehouse-package" key={pkg.id}>
+                <div>
+                  <strong>{pkg.trackingNumber}</strong>
+                  <p>
+                    {pkg.receivedAt
+                      ? `Received · ${pkg.receivedAt.toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            timeZone: "UTC",
+                          }
+                        )}`
+                      : "Awaiting warehouse arrival"}
+                  </p>
+                </div>
 
-            <div>
-              <strong>2.5 kg</strong>
-              <p>Ready to Ship</p>
-            </div>
-          </div>
-
-          <div className="warehouse-package">
-            <div>
-              <strong>KR987654321</strong>
-              <p>Received · Oct 7</p>
-            </div>
-
-            <div>
-              <strong>2.5 kg</strong>
-              <p>Ready to Ship</p>
-            </div>
-          </div>
+                <div>
+                  <strong>{pkg.weight.toFixed(1)} kg</strong>
+                  <p>{pkg.status.replaceAll("_", " ")}</p>
+                </div>
+              </div>
+            ))
+          )}
         </section>
       </div>
     </AccountLayout>

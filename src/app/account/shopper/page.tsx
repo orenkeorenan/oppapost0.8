@@ -1,6 +1,34 @@
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../../components/account/AccountLayout";
 
-export default function ShopperPage() {
+function formatStatus(status: string) {
+  return status
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function formatPrice(price: { toString(): string } | null) {
+  if (!price) return null;
+
+  return `₩${Number(price.toString()).toLocaleString("en-US")}`;
+}
+
+export default async function ShopperPage() {
+  const sessionUser = await requireUser();
+
+  const user = await prisma.user.findUnique({
+    where: { id: sessionUser.id },
+    include: {
+      personalShopperRequests: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+
+  const requests = user?.personalShopperRequests ?? [];
+
   return (
     <AccountLayout>
       <div className="account-dashboard">
@@ -12,29 +40,49 @@ export default function ShopperPage() {
         <section>
           <h2>Active Requests</h2>
 
-          <div className="shopper-request">
-            <div>
-              <strong>Nike Air Max</strong>
-              <p>Requested Oct 6</p>
-            </div>
+          {requests.length === 0 ? (
+            <p>You don't have any Personal Shopper requests yet.</p>
+          ) : (
+            requests.map((request) => (
+              <div className="shopper-request" key={request.id}>
+                <div>
+                  <strong>{request.productName}</strong>
+                  <p>
+                    Requested{" "}
+                    {request.createdAt.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    })}
+                  </p>
 
-            <div>
-              <strong>Purchased</strong>
-              <p>Package incoming</p>
-            </div>
-          </div>
+                  {request.productUrl && (
+                    <p>
+                      <a
+                        href={request.productUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View product
+                      </a>
+                    </p>
+                  )}
+                </div>
 
-          <div className="shopper-request">
-            <div>
-              <strong>Korean Skincare Set</strong>
-              <p>Requested Oct 5</p>
-            </div>
+                <div>
+                  <strong>{formatStatus(request.status)}</strong>
 
-            <div>
-              <strong>Awaiting Payment</strong>
-              <p>Quote available</p>
-            </div>
-          </div>
+                  {request.quotedPrice && (
+                    <p>Product: {formatPrice(request.quotedPrice)}</p>
+                  )}
+
+                  {request.serviceFee && (
+                    <p>Service fee: {formatPrice(request.serviceFee)}</p>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </section>
 
         <section>

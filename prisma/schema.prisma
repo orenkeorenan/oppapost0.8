@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  passwordHash String
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  address               Address?
+  packages              Package[]
+  shipments             Shipment[]
+  personalShopperRequests PersonalShopperRequest[]
+}
+
+
+model Address {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  recipientName String
+  phone         String
+  address       String
+  city          String
+  stateProvince String?
+  postalCode    String
+  country       String
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model Package {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  trackingNumber String    @unique
+  source         PackageSource
+  status         PackageStatus
+  weight         Float
+  receivedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shipmentItems         ShipmentItem[]
+  personalShopperRequest PersonalShopperRequest?
+}
+
+
+model Shipment {
+  id               Int            @id @default(autoincrement())
+  userId           Int
+  method           ShippingMethod
+  trackingNumber   String         @unique
+  weight           Float
+
+  // Delivery address snapshot
+  recipientName      String?
+  deliveryPhone      String?
+  deliveryAddress    String?  @db.VarChar(500)
+  deliveryCity       String?
+  deliveryState      String?
+  deliveryPostalCode String?
+  deliveryCountry    String?
+
+  shippedAt        DateTime?
+  estimatedArrival DateTime?
+  deliveredAt      DateTime?
+  status           ShipmentStatus
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packages ShipmentItem[]
+
+
+}
+
+
+model ShipmentItem {
+  id         Int @id @default(autoincrement())
+  shipmentId Int
+  packageId  Int @unique
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  package  Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([shipmentId, packageId])
+}
+
+model PersonalShopperRequest {
+  id           Int                  @id @default(autoincrement())
+  userId       Int
+  packageId    Int?                 @unique
+  productName  String
+  productUrl   String?
+  status       PersonalShopperStatus
+  quotedPrice  Decimal?             @db.Decimal(10, 2)
+  serviceFee   Decimal?             @db.Decimal(10, 2)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package Package? @relation(fields: [packageId], references: [id])
+}
+
+enum PackageSource {
+  STORE
+  PERSONAL_SHOPPER
+}
+
+enum PackageStatus {
+  INCOMING
+  RECEIVED
+  READY_TO_SHIP
+  SHIPPED
+}
+
+enum ShippingMethod {
+  EMS
+  AIR_CARGO
+  SEA_CARGO
+}
+
+enum ShipmentStatus {
+  SHIPPING
+  DELIVERED
+}
+
+enum PersonalShopperStatus {
+  REQUESTED
+  QUOTED
+  AWAITING_PAYMENT
+  PURCHASED
+  PACKAGE_INCOMING
+  COMPLETED
+  CANCELLED
+}
