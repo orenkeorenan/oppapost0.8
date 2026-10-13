@@ -1,3 +1,4 @@
+
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -15,6 +16,16 @@ export async function requireUser() {
 
   if (!user) {
     redirect("/");
+  }
+
+  return user;
+}
+
+export async function requireAdmin() {
+  const user = await requireUser();
+
+  if (user.role !== "ADMIN") {
+    redirect("/account");
   }
 
   return user;
