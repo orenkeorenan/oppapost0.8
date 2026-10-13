@@ -1,6 +1,6 @@
 
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const allowedStatuses = [
@@ -16,7 +16,11 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const auth = await requireAdminApi();
+
+    if (auth.response) {
+      return auth.response;
+    }
 
     const { id } = await context.params;
     const packageId = Number(id);

@@ -262,7 +262,9 @@ async function updatePackageStatus(
                         type="button"
                         onClick={() => {
                         setSelectedCustomerId(String(customer.id));
-                        setCustomerSearch(`${customer.name} — ${customer.email}`);
+                        setCustomerSearch(
+                          `${customer.name} (#${customer.id}) — ${customer.email}`
+                        );
                         setCustomerDropdownOpen(false);
                         }}
                         style={{
@@ -278,10 +280,22 @@ async function updatePackageStatus(
                         cursor: "pointer",
                         }}
                     >
-                        <strong style={{ display: "block" }}>{customer.name}</strong>
-                        <span style={{ color: "#737373", fontSize: 13 }}>
-                        {customer.email}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <strong>{customer.name}</strong>
+                        <span
+                          style={{
+                            color: "#737373",
+                            fontSize: 12,
+                            fontWeight: 400,
+                          }}
+                        >
+                          #{customer.id}
                         </span>
+                      </div>
+
+                      <span style={{ color: "#737373", fontSize: 13 }}>
+                        {customer.email}
+                      </span>
                     </button>
                     ))
                 )}

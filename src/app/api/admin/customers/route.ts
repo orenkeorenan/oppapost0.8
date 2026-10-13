@@ -1,11 +1,15 @@
 
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
   try {
-    await requireAdmin();
+    const auth = await requireAdminApi();
+
+    if (auth.response) {
+      return auth.response;
+    }
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim() ?? "";

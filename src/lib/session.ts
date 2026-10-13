@@ -1,7 +1,11 @@
+
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "oppapost_session";
+const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7;
+const SESSION_ISSUER = "oppapost";
+const SESSION_AUDIENCE = "oppapost-web";
 
 function getSecretKey() {
   const secret = process.env.SESSION_SECRET;
@@ -16,10 +20,16 @@ function getSecretKey() {
 }
 
 export async function createSession(userId: number) {
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    throw new Error("Invalid user ID for session creation.");
+  }
+
   const token = await new SignJWT({ userId })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuer(SESSION_ISSUER)
+    .setAudience(SESSION_AUDIENCE)
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
     .sign(getSecretKey());
 
   const cookieStore = await cookies();
@@ -29,7 +39,7 @@ export async function createSession(userId: number) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: SESSION_DURATION_SECONDS,
   });
 }
 
@@ -40,11 +50,15 @@ export async function getSessionUserId(): Promise<number | null> {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
+    const { payload } = await jwtVerify(token, getSecretKey(), {
+      algorithms: ["HS256"],
+      issuer: SESSION_ISSUER,
+      audience: SESSION_AUDIENCE,
+    });
 
     if (
       typeof payload.userId !== "number" ||
-      !Number.isInteger(payload.userId) ||
+      !Number.isSafeInteger(payload.userId) ||
       payload.userId <= 0
     ) {
       return null;

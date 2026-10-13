@@ -6,16 +6,28 @@ export async function POST() {
   try {
     await deleteSession();
 
-    return NextResponse.json({
-      success: true,
-      message: "Logged out successfully.",
-    });
-  } catch (error) {
-    console.error("Logout error:", error);
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Logged out successfully.",
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  } catch {
+    console.error("Logout request failed.");
 
     return NextResponse.json(
       { message: "Unable to log out right now." },
-      { status: 500 },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
     );
   }
 }

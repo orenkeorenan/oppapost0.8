@@ -151,3 +151,23 @@ enum UserRole {
   CUSTOMER
   ADMIN
 }
+
+
+
+model ShopProduct {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(200)
+  category    String   @db.VarChar(100)
+  description String   @db.VarChar(500)
+  price       Int
+  imageUrl    String?  @db.VarChar(1000)
+  productUrl  String?  @db.VarChar(1000)
+  isPopular   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, category])
+  @@index([isActive, sortOrder])
+}

@@ -15,7 +15,7 @@ type AuthMode = "login" | "register";
 export function Navbar({ onAddress }: NavbarProps) {
   const links = [
     { label: "Shipping", href: "#shipping" },
-    { label: "Personal Shopper", href: "#personal-shopper" },
+    { label: "Personal Shopper", href: "/shopper" },
     { label: "Help Center", href: "#contact" },
   ];
 
