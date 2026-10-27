@@ -1,6 +1,25 @@
+
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../../components/account/AccountLayout";
+
+function formatStatus(status: string) {
+  return status
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function formatDate(date: Date | null) {
+  if (!date) return "Awaiting warehouse arrival";
+
+  return `Received · ${date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  })}`;
+}
 
 export default async function WarehousePage() {
   const sessionUser = await requireUser();
@@ -16,9 +35,31 @@ export default async function WarehousePage() {
 
   const packages = user?.packages ?? [];
 
-  const incomingCount = packages.filter(
+  const incomingPackages = packages.filter(
     (pkg) => pkg.status === "INCOMING"
-  ).length;
+  );
+
+  const readyPackages = packages.filter(
+    (pkg) => pkg.status === "READY_TO_SHIP"
+  );
+
+  const shippedPackages = packages.filter(
+    (pkg) => pkg.status === "SHIPPED"
+  );
+
+  const deliveredPackages = packages.filter(
+    (pkg) => pkg.status === "DELIVERED"
+  );
+
+  const processingPackages = packages.filter(
+    (pkg) =>
+      ![
+        "INCOMING",
+        "READY_TO_SHIP",
+        "SHIPPED",
+        "DELIVERED",
+      ].includes(pkg.status)
+  );
 
   const warehouseWeight = packages
     .filter((pkg) =>
@@ -26,16 +67,53 @@ export default async function WarehousePage() {
     )
     .reduce((total, pkg) => total + pkg.weight, 0);
 
-  const readyToShipWeight = packages
-    .filter((pkg) => pkg.status === "READY_TO_SHIP")
-    .reduce((total, pkg) => total + pkg.weight, 0);
+  const readyToShipWeight = readyPackages.reduce(
+    (total, pkg) => total + pkg.weight,
+    0
+  );
+
+  function renderPackages(
+    title: string,
+    packageList: typeof packages,
+    emptyMessage: string
+  ) {
+    return (
+      <section>
+        <h2>
+          {title} ({packageList.length})
+        </h2>
+
+        {packageList.length === 0 ? (
+          <p>{emptyMessage}</p>
+        ) : (
+          packageList.map((pkg) => (
+            <div className="warehouse-package" key={pkg.id}>
+              <div>
+                <strong>{pkg.trackingNumber}</strong>
+                <p>{formatDate(pkg.receivedAt)}</p>
+                <p>Package ID: {pkg.id}</p>
+              </div>
+
+              <div>
+                <strong>{pkg.weight.toFixed(1)} kg</strong>
+                <p>{formatStatus(pkg.status)}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+    );
+  }
 
   return (
     <AccountLayout>
       <div className="account-dashboard">
         <header className="account-dashboard__header">
           <h1>Warehouse</h1>
-          <p>View packages currently being processed or stored.</p>
+          <p>
+            Track incoming packages, prepare shipments, and review shipped
+            and delivered packages.
+          </p>
         </header>
 
         <section>
@@ -44,7 +122,7 @@ export default async function WarehousePage() {
           <div className="warehouse-stats">
             <div className="warehouse-stat">
               <span>Incoming</span>
-              <strong>{incomingCount}</strong>
+              <strong>{incomingPackages.length}</strong>
               <small>packages</small>
             </div>
 
@@ -57,43 +135,34 @@ export default async function WarehousePage() {
             <div className="warehouse-stat">
               <span>Ready to Ship</span>
               <strong>{readyToShipWeight.toFixed(1)} kg</strong>
-              <small>available to ship</small>
+              <small>{readyPackages.length} available packages</small>
             </div>
           </div>
         </section>
 
-        <section>
-          <h2>Your Packages</h2>
+        {renderPackages(
+          "Ready to Ship",
+          readyPackages,
+          "No packages are currently ready to ship."
+        )}
 
-          {packages.length === 0 ? (
-            <p>No packages found.</p>
-          ) : (
-            packages.map((pkg) => (
-              <div className="warehouse-package" key={pkg.id}>
-                <div>
-                  <strong>{pkg.trackingNumber}</strong>
-                  <p>
-                    {pkg.receivedAt
-                      ? `Received · ${pkg.receivedAt.toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            timeZone: "UTC",
-                          }
-                        )}`
-                      : "Awaiting warehouse arrival"}
-                  </p>
-                </div>
+        {renderPackages(
+          "Being Processed",
+          [...incomingPackages, ...processingPackages],
+          "No packages are currently being processed."
+        )}
 
-                <div>
-                  <strong>{pkg.weight.toFixed(1)} kg</strong>
-                  <p>{pkg.status.replaceAll("_", " ")}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </section>
+        {renderPackages(
+          "Shipped",
+          shippedPackages,
+          "No shipped packages yet."
+        )}
+
+        {renderPackages(
+          "Delivered",
+          deliveredPackages,
+          "No delivered packages yet."
+        )}
       </div>
     </AccountLayout>
   );

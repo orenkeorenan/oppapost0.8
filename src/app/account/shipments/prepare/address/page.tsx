@@ -37,6 +37,7 @@ export default async function PrepareAddressPage({
   }
 
   const packages = await prisma.package.findMany({
+    
     where: {
       id: { in: packageIds },
       userId: sessionUser.id,
@@ -44,7 +45,11 @@ export default async function PrepareAddressPage({
       shipmentItems: {
         none: {},
       },
+      shippingGroupPackage: {
+        is: null,
+      },
     },
+
     select: {
       id: true,
       trackingNumber: true,

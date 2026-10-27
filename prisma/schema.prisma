@@ -21,6 +21,11 @@ model User {
   packages              Package[]
   shipments             Shipment[]
   personalShopperRequests PersonalShopperRequest[]
+
+  shoppingCountry String? @db.VarChar(100)
+  shoppingCity    String? @db.VarChar(100)
+  shoppingRegion  String? @db.VarChar(100)
+  groupShippingNameConsent Boolean @default(false)
 }
 
 
@@ -54,6 +59,7 @@ model Package {
   user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   shipmentItems         ShipmentItem[]
   personalShopperRequest PersonalShopperRequest?
+  shippingGroupPackage ShippingGroupPackage?
 }
 
 
@@ -124,6 +130,7 @@ enum PackageStatus {
   RECEIVED
   READY_TO_SHIP
   SHIPPED
+  DELIVERED
 }
 
 enum ShippingMethod {
@@ -133,6 +140,7 @@ enum ShippingMethod {
 }
 
 enum ShipmentStatus {
+  PENDING_DISPATCH
   SHIPPING
   DELIVERED
 }
@@ -170,4 +178,57 @@ model ShopProduct {
 
   @@index([isActive, category])
   @@index([isActive, sortOrder])
+
+  estimatedWeightGrams Int @default(500)
+}
+
+model ShippingDestinationConfig {
+  id                     Int      @id @default(autoincrement())
+  country                String   @db.VarChar(100)
+  city                   String?  @db.VarChar(100)
+  groupTargetWeightGrams Int      @default(5000)
+  minimumBillableGrams   Int      @default(500)
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([country, city])
+  @@index([country, isActive])
+}
+
+
+enum ShippingGroupStatus {
+  OPEN
+  READY
+  PROCESSING
+  SHIPPED
+  CANCELLED
+}
+
+model ShippingGroup {
+  id                     Int                @id @default(autoincrement())
+  destinationCountry     String             @db.VarChar(100)
+  destinationCity        String?            @db.VarChar(100)
+  targetWeightGrams      Int
+  minimumBillableGrams   Int
+  status                 ShippingGroupStatus @default(OPEN)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  packages               ShippingGroupPackage[]
+
+  @@index([destinationCountry, destinationCity, status])
+  @@index([status, createdAt])
+}
+
+model ShippingGroupPackage {
+  id              Int           @id @default(autoincrement())
+  shippingGroupId Int
+  packageId       Int           @unique
+  addedAt         DateTime      @default(now())
+
+  shippingGroup   ShippingGroup @relation(fields: [shippingGroupId], references: [id], onDelete: Cascade)
+  package         Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([shippingGroupId])
 }

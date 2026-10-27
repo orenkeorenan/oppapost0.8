@@ -47,168 +47,219 @@ const allowedNextStatuses: Record<string, string[]> = {
 };
 
 export default function AdminShopperPage() {
-    const [requests, setRequests] = useState<ShopperRequest[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("ALL");
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [editQuotedPrice, setEditQuotedPrice] = useState("");
-    const [editServiceFee, setEditServiceFee] = useState("");
-    const [editStatus, setEditStatus] = useState("");
-    const [saving, setSaving] = useState(false);
-    const [saveMessage, setSaveMessage] = useState("");
+  const [requests, setRequests] = useState<ShopperRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editQuotedPrice, setEditQuotedPrice] = useState("");
+  const [editServiceFee, setEditServiceFee] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [packageTrackingNumber, setPackageTrackingNumber] = useState("");
+  const [packageWeight, setPackageWeight] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
-    const loadRequests = useCallback(async () => {
-        setLoading(true);
-        setError("");
+  const loadRequests = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-        try {
-        const response = await fetch("/api/admin/shopper");
-        const data = await response.json();
+    try {
+      const response = await fetch("/api/admin/shopper");
+      const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data.error || "Unable to load requests.");
-        }
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to load requests.");
+      }
 
-        setRequests(data.requests);
-        } catch (err) {
-        setError(
-            err instanceof Error ? err.message : "Something went wrong."
+      setRequests(data.requests);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
+
+  const startEditing = (request: ShopperRequest) => {
+    setEditingId(request.id);
+    setEditQuotedPrice(
+      request.quotedPrice === null ? "" : String(request.quotedPrice)
+    );
+    setEditServiceFee(
+      request.serviceFee === null ? "" : String(request.serviceFee)
+    );
+    setEditStatus(request.status);
+    setPackageTrackingNumber(request.package?.trackingNumber ?? "");
+    setPackageWeight(
+      request.package ? String(request.package.weight) : ""
+    );
+    setSaveMessage("");
+    setError("");
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditQuotedPrice("");
+    setEditServiceFee("");
+    setEditStatus("");
+    setPackageTrackingNumber("");
+    setPackageWeight("");
+    setSaveMessage("");
+  };
+
+  const saveRequest = async (id: number) => {
+    const quotedPrice = Number(editQuotedPrice);
+    const serviceFee = Number(editServiceFee);
+
+    if (
+      editQuotedPrice.trim() === "" ||
+      editServiceFee.trim() === "" ||
+      !Number.isFinite(quotedPrice) ||
+      !Number.isFinite(serviceFee) ||
+      quotedPrice < 0 ||
+      serviceFee < 0
+    ) {
+      setSaveMessage("Enter valid, non-negative prices for both fields.");
+      return;
+    }
+
+    const currentRequest = requests.find((item) => item.id === id);
+
+    if (!currentRequest) {
+      setSaveMessage("Request not found. Refresh and try again.");
+      return;
+    }
+    
+    if (
+      currentRequest.status === "AWAITING_PAYMENT" &&
+      editStatus === "PURCHASED"
+    ) {
+      const confirmed = window.confirm(
+        "Have you verified that the customer's bank transfer was received? Only confirm if payment has actually arrived."
+      );
+
+      if (!confirmed) return;
+    }
+
+
+    const registeringPackage =
+      editStatus === "PACKAGE_INCOMING" &&
+      currentRequest.status === "PURCHASED" &&
+      !currentRequest.package;
+
+    let parsedPackageWeight: number | undefined;
+
+    if (registeringPackage) {
+      parsedPackageWeight = Number(packageWeight);
+
+      if (
+        !packageTrackingNumber.trim() ||
+        packageWeight.trim() === "" ||
+        !Number.isFinite(parsedPackageWeight) ||
+        parsedPackageWeight <= 0
+      ) {
+        setSaveMessage(
+          "Enter a package tracking number and a weight greater than zero."
         );
-        } finally {
-        setLoading(false);
-        }
-    }, []);
+        return;
+      }
+    }
 
-    const startEditing = (request: ShopperRequest) => {
-        setEditingId(request.id);
-        setEditQuotedPrice(
-            request.quotedPrice === null ? "" : String(request.quotedPrice)
+    setSaving(true);
+    setSaveMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/shopper/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          quotedPrice,
+          serviceFee,
+          status: editStatus,
+          ...(registeringPackage
+            ? {
+                packageTrackingNumber: packageTrackingNumber.trim(),
+                packageWeight: parsedPackageWeight,
+              }
+            : {}),
+        }),
+      });
+
+      const responseText = await response.text();
+      let data: { error?: string };
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error("Expected JSON but received:", responseText);
+        throw new Error(
+          `Server returned an unexpected response (HTTP ${response.status}). Check the API route and server terminal.`
         );
-        setEditServiceFee(
-            request.serviceFee === null ? "" : String(request.serviceFee)
-        );
-        setEditStatus(request.status);
-        setSaveMessage("");
-        };
+      }
 
-        const cancelEditing = () => {
-        setEditingId(null);
-        setEditQuotedPrice("");
-        setEditServiceFee("");
-        setEditStatus("");
-        setSaveMessage("");
-        };
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to save the request.");
+      }
 
-        const saveRequest = async (id: number) => {
-        const quotedPrice = Number(editQuotedPrice);
-        const serviceFee = Number(editServiceFee);
+      await loadRequests();
+      setEditingId(null);
+      setSaveMessage(`Request #${id} saved successfully.`);
+    } catch (err) {
+      setSaveMessage(
+        err instanceof Error ? err.message : "Something went wrong."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
-        if (
-            editQuotedPrice.trim() === "" ||
-            editServiceFee.trim() === "" ||
-            !Number.isFinite(quotedPrice) ||
-            !Number.isFinite(serviceFee) ||
-            quotedPrice < 0 ||
-            serviceFee < 0
-        ) {
-            setSaveMessage("Enter valid, non-negative prices for both fields.");
-            return;
-        }
+  const filteredRequests = requests.filter((request) => {
+    const matchesStatus =
+      statusFilter === "ALL" || request.status === statusFilter;
 
-        setSaving(true);
-        setSaveMessage("");
-        setError("");
+    const searchText = search.toLowerCase().trim();
 
-        try {
-            const response = await fetch(`/api/admin/shopper/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                quotedPrice,
-                serviceFee,
-                status: editStatus,
-            }),
-            });
+    const matchesSearch =
+      !searchText ||
+      request.productName.toLowerCase().includes(searchText) ||
+      request.user.name.toLowerCase().includes(searchText) ||
+      request.user.email.toLowerCase().includes(searchText) ||
+      String(request.id).includes(searchText);
 
-            const responseText = await response.text();
+    return matchesStatus && matchesSearch;
+  });
 
-                let data: { error?: string };
+  const formatPrice = (value: string | number | null) => {
+    if (value === null) return "—";
+    return `₩${Number(value).toLocaleString("en-US")}`;
+  };
 
-                try {
-                data = JSON.parse(responseText);
-                } catch {
-                console.error("Expected JSON but received:", responseText);
-                throw new Error(
-                    `Server returned HTML instead of JSON (HTTP ${response.status}). Check the API route and server terminal.`
-                );
-                }
-
-                if (!response.ok) {
-                throw new Error(data.error || "Unable to save the request.");
-            }
-
-            if (!response.ok) {
-            throw new Error(data.error || "Unable to save the request.");
-            }
-
-            await loadRequests();
-            setEditingId(null);
-            setSaveMessage(`Request #${id} saved successfully.`);
-        } catch (err) {
-            setSaveMessage(
-            err instanceof Error ? err.message : "Something went wrong."
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    useEffect(() => {
-        loadRequests();
-    }, [loadRequests]);
-
-    const filteredRequests = requests.filter((request) => {
-        const matchesStatus =
-        statusFilter === "ALL" || request.status === statusFilter;
-
-        const searchText = search.toLowerCase().trim();
-
-        const matchesSearch =
-        !searchText ||
-        request.productName.toLowerCase().includes(searchText) ||
-        request.user.name.toLowerCase().includes(searchText) ||
-        request.user.email.toLowerCase().includes(searchText) ||
-        String(request.id).includes(searchText);
-
-        return matchesStatus && matchesSearch;
+  const formatDate = (value: string) =>
+    new Date(value).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
 
-    const formatPrice = (value: string | number | null) => {
-        if (value === null) return "—";
+  const editingRequest = requests.find(
+    (request) => request.id === editingId
+  );
 
-        return `₩${Number(value).toLocaleString("en-US")}`;
-    };
-
-    const formatDate = (value: string) =>
-        new Date(value).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        });
-
-    const editingRequest = requests.find(
-        (request) => request.id === editingId
-        );
-
-        const availableStatuses = editingRequest
-        ? [
-            editingRequest.status,
-            ...(allowedNextStatuses[editingRequest.status] ?? []),
-            ]
+  const availableStatuses = editingRequest
+    ? [
+        editingRequest.status,
+        ...(allowedNextStatuses[editingRequest.status] ?? []),
+      ]
     : [];
 
   return (
@@ -235,13 +286,13 @@ export default function AdminShopperPage() {
         <button
           type="button"
           onClick={loadRequests}
-          disabled={loading}
+          disabled={loading || saving}
           style={{
             padding: "10px 16px",
             border: "1px solid #ddd",
             borderRadius: "8px",
             background: "#fff",
-            cursor: loading ? "wait" : "pointer",
+            cursor: loading || saving ? "wait" : "pointer",
           }}
         >
           {loading ? "Loading..." : "Refresh"}
@@ -279,11 +330,11 @@ export default function AdminShopperPage() {
             background: "#fff",
           }}
         >
-            {availableStatuses.map((status) => (
-                <option key={status} value={status}>
-                    {status.replaceAll("_", " ")}
-                </option>
-            ))}
+          {statuses.map((status) => (
+            <option key={status} value={status}>
+              {status === "ALL" ? "All statuses" : status.replaceAll("_", " ")}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -370,7 +421,6 @@ export default function AdminShopperPage() {
                   "Created",
                   "Actions",
                 ].map((heading) => (
-                    
                   <th
                     key={heading}
                     style={{
@@ -389,18 +439,33 @@ export default function AdminShopperPage() {
             <tbody>
               {filteredRequests.map((request) => (
                 <tr key={request.id}>
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     #{request.id}
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     <div>{request.user.name}</div>
                     <small style={{ color: "#777" }}>
                       {request.user.email}
                     </small>
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     <div style={{ fontWeight: 600 }}>{request.productName}</div>
                     {request.productUrl && (
                       <a
@@ -414,24 +479,45 @@ export default function AdminShopperPage() {
                     )}
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     {formatPrice(request.quotedPrice)}
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     {formatPrice(request.serviceFee)}
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     {request.status.replaceAll("_", " ")}
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
                     {request.package ? (
                       <div>
                         <div>{request.package.trackingNumber}</div>
                         <small style={{ color: "#777" }}>
-                          {request.package.status.replaceAll("_", " ")}
+                          {request.package.status.replaceAll("_", " ")} ·{" "}
+                          {request.package.weight} kg
                         </small>
                       </div>
                     ) : (
@@ -439,29 +525,36 @@ export default function AdminShopperPage() {
                     )}
                   </td>
 
-                  <td style={{ padding: "14px", borderBottom: "1px solid #eee", whiteSpace: "nowrap" }}>
-                    {formatDate(request.createdAt)}
-                  </td>
                   <td
                     style={{
-                        padding: "14px",
-                        borderBottom: "1px solid #eee",
-                        whiteSpace: "nowrap",
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                      whiteSpace: "nowrap",
                     }}
-                    >
+                  >
+                    {formatDate(request.createdAt)}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     <button
-                        type="button"
-                        onClick={() => startEditing(request)}
-                        disabled={saving}
-                        style={{
+                      type="button"
+                      onClick={() => startEditing(request)}
+                      disabled={saving}
+                      style={{
                         padding: "8px 12px",
                         border: "1px solid #ddd",
                         borderRadius: "6px",
                         background: "#fff",
                         cursor: saving ? "not-allowed" : "pointer",
-                        }}
+                      }}
                     >
-                        Edit
+                      Edit
                     </button>
                   </td>
                 </tr>
@@ -469,146 +562,200 @@ export default function AdminShopperPage() {
             </tbody>
           </table>
         </div>
-        
       )}
+
       {editingId !== null && (
-  <div
-    style={{
-      marginTop: "24px",
-      padding: "24px",
-      border: "1px solid #eee",
-      borderRadius: "10px",
-      background: "#fff",
-    }}
-  >
-    <h2 style={{ fontSize: "20px", marginTop: 0 }}>
-      Edit Request #{editingId}
-    </h2>
-
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: "16px",
-      }}
-    >
-      <label>
-        <span style={{ display: "block", marginBottom: "8px" }}>
-          Quoted product price (₩)
-        </span>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          value={editQuotedPrice}
-          onChange={(event) => setEditQuotedPrice(event.target.value)}
-          disabled={saving}
+        <div
           style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "10px",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-          }}
-        />
-      </label>
-
-      <label>
-        <span style={{ display: "block", marginBottom: "8px" }}>
-          Service fee (₩)
-        </span>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          value={editServiceFee}
-          onChange={(event) => setEditServiceFee(event.target.value)}
-          disabled={saving}
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "10px",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-          }}
-        />
-      </label>
-
-      <label>
-        <span style={{ display: "block", marginBottom: "8px" }}>
-          Request status
-        </span>
-        <select
-          value={editStatus}
-          onChange={(event) => setEditStatus(event.target.value)}
-          disabled={saving}
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "10px",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
+            marginTop: "24px",
+            padding: "24px",
+            border: "1px solid #eee",
+            borderRadius: "10px",
             background: "#fff",
           }}
         >
-          {statuses
-            .filter((status) => status !== "ALL")
-            .map((status) => (
-              <option key={status} value={status}>
-                {status.replaceAll("_", " ")}
-              </option>
-            ))}
-        </select>
-      </label>
-    </div>
+          <h2 style={{ fontSize: "20px", marginTop: 0 }}>
+            Edit Request #{editingId}
+          </h2>
 
-        {saveMessage && (
-            <p
-                role="status"
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            <label>
+              <span style={{ display: "block", marginBottom: "8px" }}>
+                Quoted product price (₩)
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={editQuotedPrice}
+                onChange={(event) => setEditQuotedPrice(event.target.value)}
+                disabled={saving}
                 style={{
-                marginTop: "16px",
-                color: saveMessage.includes("saved successfully")
-                    ? "#067647"
-                    : "#b42318",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
                 }}
-            >
-                {saveMessage}
-            </p>
-        )}
-            <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-                <button
-                    type="button"
-                    onClick={() => saveRequest(editingId)}
-                    disabled={saving}
-                    style={{
-                    padding: "10px 16px",
-                    border: "none",
-                    borderRadius: "6px",
-                    background: "#d97706",
-                    color: "#fff",
-                    cursor: saving ? "wait" : "pointer",
-                    }}
-                >
-                    {saving ? "Saving..." : "Save changes"}
-                </button>
+              />
+            </label>
 
-                <button
-                    type="button"
-                    onClick={cancelEditing}
-                    disabled={saving}
-                    style={{
-                    padding: "10px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "6px",
-                    background: "#fff",
-                    cursor: saving ? "not-allowed" : "pointer",
-                    }}
-                >
-                    Cancel
-                </button>
-                </div>
-            </div>
-        )}
+            <label>
+              <span style={{ display: "block", marginBottom: "8px" }}>
+                Service fee (₩)
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={editServiceFee}
+                onChange={(event) => setEditServiceFee(event.target.value)}
+                disabled={saving}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                }}
+              />
+            </label>
+
+            <label>
+              <span style={{ display: "block", marginBottom: "8px" }}>
+                Request status
+              </span>
+              <select
+                value={editStatus}
+                onChange={(event) => setEditStatus(event.target.value)}
+                disabled={saving}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  background: "#fff",
+                }}
+              >
+                
+                {availableStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status === "PURCHASED" &&
+                    editingRequest?.status === "AWAITING_PAYMENT"
+                      ? "Confirm payment & mark purchased"
+                      : status.replaceAll("_", " ")}
+                  </option>
+                ))}
+
+              </select>
+            </label>
+
+            {editStatus === "PACKAGE_INCOMING" &&
+              editingRequest?.status === "PURCHASED" &&
+              !editingRequest.package && (
+                <>
+                  <label>
+                    <span style={{ display: "block", marginBottom: "8px" }}>
+                      Warehouse package tracking number
+                    </span>
+                    <input
+                      type="text"
+                      value={packageTrackingNumber}
+                      onChange={(event) =>
+                        setPackageTrackingNumber(event.target.value)
+                      }
+                      disabled={saving}
+                      placeholder="Enter tracking number"
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "6px",
+                      }}
+                    />
+                  </label>
+
+                  <label>
+                    <span style={{ display: "block", marginBottom: "8px" }}>
+                      Package weight (kg)
+                    </span>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={packageWeight}
+                      onChange={(event) => setPackageWeight(event.target.value)}
+                      disabled={saving}
+                      placeholder="e.g. 1.25"
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "6px",
+                      }}
+                    />
+                  </label>
+                </>
+              )}
+          </div>
+
+          {saveMessage && (
+            <p
+              role="status"
+              style={{
+                margin: "0 0 16px",
+                color: saveMessage.includes("saved successfully")
+                  ? "#067647"
+                  : "#b42318",
+              }}
+            >
+              {saveMessage}
+            </p>
+          )}
+
+          <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+            <button
+              type="button"
+              onClick={() => saveRequest(editingId)}
+              disabled={saving}
+              style={{
+                padding: "10px 16px",
+                border: "none",
+                borderRadius: "6px",
+                background: "#d97706",
+                color: "#fff",
+                cursor: saving ? "wait" : "pointer",
+              }}
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+
+            <button
+              type="button"
+              onClick={cancelEditing}
+              disabled={saving}
+              style={{
+                padding: "10px 16px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                background: "#fff",
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

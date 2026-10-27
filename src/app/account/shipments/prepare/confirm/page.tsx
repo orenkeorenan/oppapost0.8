@@ -58,6 +58,7 @@ export default async function ConfirmShipmentPage({
       userId: sessionUser.id,
       status: "READY_TO_SHIP",
       shipmentItems: { none: {} },
+      shippingGroupPackage: { is: null },
     },
     select: {
       id: true,

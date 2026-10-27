@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `shipment` MODIFY `status` ENUM('PENDING_DISPATCH', 'SHIPPING', 'DELIVERED') NOT NULL;

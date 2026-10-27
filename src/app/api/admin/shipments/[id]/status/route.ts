@@ -31,7 +31,20 @@ export async function PATCH(
     let body: { status?: unknown };
 
     try {
-      body = await request.json();
+      const parsed: unknown = await request.json();
+
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return NextResponse.json(
+          { error: "Request body must be a JSON object." },
+          { status: 400 }
+        );
+      }
+
+      body = parsed;
     } catch {
       return NextResponse.json(
         { error: "Invalid request body." },
@@ -46,54 +59,135 @@ export async function PATCH(
       );
     }
 
-    const existingShipment = await prisma.shipment.findUnique({
-      where: { id: shipmentId },
-      select: { id: true, status: true },
+    const result = await prisma.$transaction(async (tx) => {
+      const existingShipment = await tx.shipment.findUnique({
+        where: { id: shipmentId },
+        select: {
+          id: true,
+          status: true,
+          shippedAt: true,
+          packages: {
+            select: {
+              package: {
+                select: {
+                  id: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!existingShipment) {
+        return {
+          error: "Shipment not found.",
+          status: 404 as const,
+        };
+      }
+
+      if (existingShipment.status === "DELIVERED") {
+        return {
+          error: "This shipment has already been delivered.",
+          status: 409 as const,
+        };
+      }
+
+      if (
+        existingShipment.status !== "SHIPPING" ||
+        !existingShipment.shippedAt
+      ) {
+        return {
+          error:
+            "This shipment must be dispatched before it can be marked as delivered.",
+          status: 409 as const,
+        };
+      }
+
+      if (existingShipment.packages.length === 0) {
+        return {
+          error: "A shipment must contain at least one package.",
+          status: 409 as const,
+        };
+      }
+
+      if (
+        existingShipment.packages.some(
+          ({ package: pkg }) => pkg.status !== "SHIPPED"
+        )
+      ) {
+        return {
+          error:
+            "All packages must be SHIPPED before the shipment can be delivered.",
+          status: 409 as const,
+        };
+      }
+
+      const deliveredAt = new Date();
+
+      const updatedShipment = await tx.shipment.updateMany({
+        where: {
+          id: shipmentId,
+          status: "SHIPPING",
+          shippedAt: { not: null },
+          deliveredAt: null,
+        },
+        data: {
+          status: "DELIVERED",
+          deliveredAt,
+        },
+      });
+
+      if (updatedShipment.count === 0) {
+        return {
+          error: "Shipment status changed. Refresh and try again.",
+          status: 409 as const,
+        };
+      }
+
+      const updatedPackages = await tx.package.updateMany({
+        where: {
+          id: {
+            in: existingShipment.packages.map(
+              ({ package: pkg }) => pkg.id
+            ),
+          },
+          status: "SHIPPED",
+        },
+        data: {
+          status: "DELIVERED",
+        },
+      });
+
+      if (updatedPackages.count !== existingShipment.packages.length) {
+        throw new Error("PACKAGE_DELIVERY_UPDATE_FAILED");
+      }
+
+      const shipment = await tx.shipment.findUnique({
+        where: { id: shipmentId },
+        select: {
+          id: true,
+          trackingNumber: true,
+          status: true,
+          deliveredAt: true,
+        },
+      });
+
+      if (!shipment) {
+        throw new Error("SHIPMENT_NOT_FOUND_AFTER_UPDATE");
+      }
+
+      return { shipment };
     });
 
-    if (!existingShipment) {
+    if ("error" in result) {
       return NextResponse.json(
-        { error: "Shipment not found." },
-        { status: 404 }
+        { error: result.error },
+        { status: result.status }
       );
     }
 
-    if (existingShipment.status === "DELIVERED") {
-      return NextResponse.json(
-        { error: "This shipment has already been delivered." },
-        { status: 409 }
-      );
-    }
-
-    const result = await prisma.shipment.updateMany({
-      where: {
-        id: shipmentId,
-        status: "SHIPPING",
-      },
-      data: {
-        status: "DELIVERED",
-        deliveredAt: new Date(),
-      },
-    });
-
-    if (result.count === 0) {
-      return NextResponse.json(
-        { error: "Shipment status changed. Refresh and try again." },
-        { status: 409 }
-      );
-    }
-
-    const shipment = await prisma.shipment.findUnique({
-      where: { id: shipmentId },
-      select: {
-        id: true,
-        trackingNumber: true,
-        status: true,
-        deliveredAt: true,
-      },
-    });
-
-    return NextResponse.json({ shipment });
+    return NextResponse.json({ shipment: result.shipment });
   } catch (error) {
     console.error("Admin shipment status update error:", error);
 

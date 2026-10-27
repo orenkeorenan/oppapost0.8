@@ -48,17 +48,31 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      productUrl &&
-      (
-        productUrl.length > 1000 ||
-        !/^https:\/\/\S+$/i.test(productUrl)
-      )
-    ) {
-      return NextResponse.json(
-        { error: "Please provide a valid HTTPS product URL." },
-        { status: 400 },
-      );
+    if (productUrl) {
+      if (productUrl.length > 1000) {
+        return NextResponse.json(
+          { error: "Product URL must be 1000 characters or fewer." },
+          { status: 400 },
+        );
+      }
+
+      try {
+        const parsedUrl = new URL(productUrl);
+
+        if (
+          parsedUrl.protocol !== "https:" ||
+          !parsedUrl.hostname ||
+          parsedUrl.username ||
+          parsedUrl.password
+        ) {
+          throw new Error("Invalid product URL.");
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Please provide a valid HTTPS product URL." },
+          { status: 400 },
+        );
+      }
     }
 
     const createdRequest = await prisma.personalShopperRequest.create({

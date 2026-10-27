@@ -1,6 +1,9 @@
+
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../../components/account/AccountLayout";
+import { ShopperRequestForm } from "./ShopperRequestForm";
+import { ShopperPaymentInstructions } from "./ShopperPaymentInstructions";
 
 function formatStatus(status: string) {
   return status
@@ -10,7 +13,7 @@ function formatStatus(status: string) {
 }
 
 function formatPrice(price: { toString(): string } | null) {
-  if (!price) return null;
+  if (price === null) return null;
 
   return `₩${Number(price.toString()).toLocaleString("en-US")}`;
 }
@@ -23,6 +26,16 @@ export default async function ShopperPage() {
     include: {
       personalShopperRequests: {
         orderBy: { createdAt: "desc" },
+        include: {
+          package: {
+            select: {
+              id: true,
+              trackingNumber: true,
+              status: true,
+              weight: true,
+            },
+          },
+        },
       },
     },
   });
@@ -34,11 +47,13 @@ export default async function ShopperPage() {
       <div className="account-dashboard">
         <header className="account-dashboard__header">
           <h1>Personal Shopper</h1>
-          <p>View and manage your Personal Shopper requests.</p>
+          <p>
+            View your Personal Shopper requests, prices, and package status.
+          </p>
         </header>
 
         <section>
-          <h2>Active Requests</h2>
+          <h2>My Requests</h2>
 
           {requests.length === 0 ? (
             <p>You don't have any Personal Shopper requests yet.</p>
@@ -47,11 +62,13 @@ export default async function ShopperPage() {
               <div className="shopper-request" key={request.id}>
                 <div>
                   <strong>{request.productName}</strong>
+
                   <p>
                     Requested{" "}
                     {request.createdAt.toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
+                      year: "numeric",
                       timeZone: "UTC",
                     })}
                   </p>
@@ -72,14 +89,54 @@ export default async function ShopperPage() {
                 <div>
                   <strong>{formatStatus(request.status)}</strong>
 
-                  {request.quotedPrice && (
-                    <p>Product: {formatPrice(request.quotedPrice)}</p>
+                  {request.quotedPrice !== null && (
+                    <p>Product price: {formatPrice(request.quotedPrice)}</p>
                   )}
 
-                  {request.serviceFee && (
+                  {request.serviceFee !== null && (
                     <p>Service fee: {formatPrice(request.serviceFee)}</p>
                   )}
+
+                  {request.quotedPrice !== null &&
+                    request.serviceFee !== null && (
+                      <p>
+                        <strong>
+                          Total:{" "}
+                          {formatPrice(
+                            Number(request.quotedPrice.toString()) +
+                              Number(request.serviceFee.toString())
+                          )}
+                        </strong>
+                      </p>
+                    )}
                 </div>
+
+                {request.package && (
+                  <div>
+                    <strong>Warehouse Package</strong>
+                    <p>Tracking number: {request.package.trackingNumber}</p>
+                    <p>
+                      Package status: {formatStatus(request.package.status)}
+                    </p>
+                    <p>
+                      Weight:{" "}
+                      {Number(request.package.weight).toLocaleString("en-US")}{" "}
+                      kg
+                    </p>
+                    <p>Package ID: {request.package.id}</p>
+                  </div>
+                )}
+
+                {request.status === "AWAITING_PAYMENT" &&
+                  request.quotedPrice !== null &&
+                  request.serviceFee !== null && (
+                    <ShopperPaymentInstructions
+                      total={
+                        Number(request.quotedPrice.toString()) +
+                        Number(request.serviceFee.toString())
+                      }
+                    />
+                  )}
               </div>
             ))
           )}
@@ -93,7 +150,7 @@ export default async function ShopperPage() {
             Let Oppapost purchase it for you.
           </p>
 
-          <button type="button">Request a Product</button>
+          <ShopperRequestForm />
         </section>
       </div>
     </AccountLayout>

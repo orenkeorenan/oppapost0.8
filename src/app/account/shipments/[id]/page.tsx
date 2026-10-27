@@ -69,28 +69,75 @@ export default async function ShipmentDetailsPage({
           <p>{shipment.trackingNumber}</p>
         </header>
 
-        <section>
-          <h2>Shipment Overview</h2>
-          <div className="warehouse-package">
-            <div>
-              <strong>Status</strong>
-              <p>{formatLabel(shipment.status)}</p>
-            </div>
-            <div>
-              <strong>Shipping Method</strong>
-              <p>{formatLabel(shipment.method)}</p>
-            </div>
-            <div>
-              <strong>Total Weight</strong>
-              <p>{shipment.weight.toFixed(1)} kg</p>
-            </div>
-          </div>
+        
+      <section>
+        <h2>Shipment Overview</h2>
 
-          <p>Created: {formatDate(shipment.createdAt)}</p>
-          <p>Shipped: {formatDate(shipment.shippedAt)}</p>
-          <p>Estimated Arrival: {formatDate(shipment.estimatedArrival)}</p>
-          <p>Delivered: {formatDate(shipment.deliveredAt)}</p>
-        </section>
+        <div className="warehouse-package">
+          <div>
+            <strong>Tracking Number</strong>
+            <p>{shipment.trackingNumber}</p>
+          </div>
+          <div>
+            <strong>Status</strong>
+            <p>{formatLabel(shipment.status)}</p>
+          </div>
+          <div>
+            <strong>Shipping Method</strong>
+            <p>{formatLabel(shipment.method)}</p>
+          </div>
+          <div>
+            <strong>Total Weight</strong>
+            <p>{shipment.weight.toFixed(1)} kg</p>
+          </div>
+        </div>
+
+        
+      {[
+        {
+          title: "Shipment Created",
+          date: shipment.createdAt,
+          complete: true,
+        },
+        {
+          title: "Dispatched",
+          date: shipment.shippedAt,
+          complete:
+            shipment.status === "SHIPPING" ||
+            shipment.status === "DELIVERED",
+        },
+        {
+          title: "Delivered",
+          date: shipment.deliveredAt,
+          complete: shipment.status === "DELIVERED",
+        },
+      ].map((step) => (
+        <div
+          key={step.title}
+          style={{
+            padding: "16px",
+            border: "1px solid #e5e7eb",
+            borderRadius: "10px",
+            background: step.complete ? "#f0fdf4" : "#fafafa",
+          }}
+        >
+          <strong>
+            {step.complete ? "✓ " : "○ "}
+            {step.title}
+          </strong>
+          <p style={{ marginBottom: 0, color: "#666" }}>
+            {formatDate(step.date)}
+          </p>
+        </div>
+      ))}
+
+
+        <p>
+          <strong>Estimated Arrival:</strong>{" "}
+          {formatDate(shipment.estimatedArrival)}
+        </p>
+      </section>
+
 
         <section>
           <h2>Delivery Destination</h2>

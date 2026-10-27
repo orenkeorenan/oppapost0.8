@@ -9,7 +9,7 @@ type ShipmentRecord = {
   trackingNumber: string;
   method: "EMS" | "AIR_CARGO" | "SEA_CARGO";
   weight: number;
-  status: "SHIPPING" | "DELIVERED";
+  status: "PENDING_DISPATCH" | "SHIPPING" | "DELIVERED";
   createdAt: string;
   shippedAt: string | null;
   estimatedArrival: string | null;
@@ -87,6 +87,28 @@ export default function AdminShipmentsPage() {
     });
   };
 
+  const getStatusLabel = (status: ShipmentRecord["status"]) => {
+    switch (status) {
+      case "PENDING_DISPATCH":
+        return "Pending dispatch";
+      case "SHIPPING":
+        return "In transit";
+      case "DELIVERED":
+        return "Delivered";
+    }
+  };
+
+  const getStatusStyle = (status: ShipmentRecord["status"]) => {
+    switch (status) {
+      case "PENDING_DISPATCH":
+        return { background: "#fff4df", color: "#8a5700" };
+      case "SHIPPING":
+        return { background: "#e8f0ff", color: "#2457a7" };
+      case "DELIVERED":
+        return { background: "#e8f7ec", color: "#18743a" };
+    }
+  };
+
   return (
     <main style={{ padding: "32px", maxWidth: "1400px", margin: "0 auto" }}>
       <div
@@ -156,7 +178,8 @@ export default function AdminShipmentsPage() {
           }}
         >
           <option value="ALL">All statuses</option>
-          <option value="SHIPPING">Shipping</option>
+          <option value="PENDING_DISPATCH">Pending dispatch</option>
+          <option value="SHIPPING">In transit</option>
           <option value="DELIVERED">Delivered</option>
         </select>
       </div>
@@ -169,22 +192,69 @@ export default function AdminShipmentsPage() {
           marginBottom: "20px",
         }}
       >
-        <div style={{ padding: "16px", border: "1px solid #eee", borderRadius: "10px", minWidth: "150px" }}>
+        <div
+          style={{
+            padding: "16px",
+            border: "1px solid #eee",
+            borderRadius: "10px",
+            minWidth: "150px",
+          }}
+        >
           <p style={{ color: "#777", margin: 0 }}>Total shipments</p>
           <strong style={{ fontSize: "24px" }}>{shipments.length}</strong>
         </div>
 
-        <div style={{ padding: "16px", border: "1px solid #eee", borderRadius: "10px", minWidth: "150px" }}>
-          <p style={{ color: "#777", margin: 0 }}>In transit</p>
+        <div
+          style={{
+            padding: "16px",
+            border: "1px solid #eee",
+            borderRadius: "10px",
+            minWidth: "150px",
+          }}
+        >
+          <p style={{ color: "#777", margin: 0 }}>Pending dispatch</p>
           <strong style={{ fontSize: "24px" }}>
-            {shipments.filter((shipment) => shipment.status === "SHIPPING").length}
+            {
+              shipments.filter(
+                (shipment) => shipment.status === "PENDING_DISPATCH"
+              ).length
+            }
           </strong>
         </div>
 
-        <div style={{ padding: "16px", border: "1px solid #eee", borderRadius: "10px", minWidth: "150px" }}>
+        <div
+          style={{
+            padding: "16px",
+            border: "1px solid #eee",
+            borderRadius: "10px",
+            minWidth: "150px",
+          }}
+        >
+          <p style={{ color: "#777", margin: 0 }}>In transit</p>
+          <strong style={{ fontSize: "24px" }}>
+            {
+              shipments.filter(
+                (shipment) => shipment.status === "SHIPPING"
+              ).length
+            }
+          </strong>
+        </div>
+
+        <div
+          style={{
+            padding: "16px",
+            border: "1px solid #eee",
+            borderRadius: "10px",
+            minWidth: "150px",
+          }}
+        >
           <p style={{ color: "#777", margin: 0 }}>Delivered</p>
           <strong style={{ fontSize: "24px" }}>
-            {shipments.filter((shipment) => shipment.status === "DELIVERED").length}
+            {
+              shipments.filter(
+                (shipment) => shipment.status === "DELIVERED"
+              ).length
+            }
           </strong>
         </div>
       </div>
@@ -213,7 +283,13 @@ export default function AdminShipmentsPage() {
             : "No shipments match your search or status filter."}
         </p>
       ) : (
-        <div style={{ overflowX: "auto", border: "1px solid #eee", borderRadius: "10px" }}>
+        <div
+          style={{
+            overflowX: "auto",
+            border: "1px solid #eee",
+            borderRadius: "10px",
+          }}
+        >
           <table
             style={{
               width: "100%",
@@ -252,49 +328,100 @@ export default function AdminShipmentsPage() {
             <tbody>
               {filteredShipments.map((shipment) => (
                 <tr key={shipment.id}>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee", fontWeight: 600 }}>
-                        <Link
-                            href={`/admin/shipments/${shipment.id}`}
-                            style={{ color: "#d97706", textDecoration: "none" }}
-                        >
-                            {shipment.trackingNumber}
-                        </Link>
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
-                        <div>{shipment.user.name}</div>
-                        <small style={{ color: "#777" }}>{shipment.user.email}</small>
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
-                        {shipment.deliveryCountry || "—"}
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
-                        {shipment.method.replaceAll("_", " ")}
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
-                        {shipment.weight} kg
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
-                        {shipment.packages.length}
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee" }}>
-                        <span
-                        style={{
-                            display: "inline-block",
-                            padding: "5px 9px",
-                            borderRadius: "20px",
-                            fontSize: "12px",
-                            background:
-                            shipment.status === "DELIVERED" ? "#e8f7ec" : "#fff4df",
-                            color:
-                            shipment.status === "DELIVERED" ? "#18743a" : "#8a5700",
-                        }}
-                        >
-                        {shipment.status === "SHIPPING" ? "In transit" : "Delivered"}
-                        </span>
-                    </td>
-                    <td style={{ padding: "14px", borderBottom: "1px solid #eee", whiteSpace: "nowrap" }}>
-                        {formatDate(shipment.createdAt)}
-                    </td>
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Link
+                      href={`/admin/shipments/${shipment.id}`}
+                      style={{
+                        color: "#d97706",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {shipment.trackingNumber}
+                    </Link>
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    <div>{shipment.user.name}</div>
+                    <small style={{ color: "#777" }}>
+                      {shipment.user.email}
+                    </small>
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    {shipment.deliveryCountry || "—"}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    {shipment.method.replaceAll("_", " ")}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    {shipment.weight} kg
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    {shipment.packages.length}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "5px 9px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        ...getStatusStyle(shipment.status),
+                      }}
+                    >
+                      {getStatusLabel(shipment.status)}
+                    </span>
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "14px",
+                      borderBottom: "1px solid #eee",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {formatDate(shipment.createdAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>

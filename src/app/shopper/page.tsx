@@ -41,6 +41,15 @@ export default function ShopperPage() {
     const [products, setProducts] = useState<ShopProduct[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
     const [productsError, setProductsError] = useState("");
+    const [destination, setDestination] = useState({
+      country: "",
+      city: "",
+      region: "",
+    });
+    const [destinationLoading, setDestinationLoading] = useState(true);
+    const [destinationSaving, setDestinationSaving] = useState(false);
+    const [destinationMessage, setDestinationMessage] = useState("");
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [requestSubmitting, setRequestSubmitting] = useState(false);
 
 
@@ -80,6 +89,98 @@ export default function ShopperPage() {
         };
     }, []);
 
+    useEffect(() => {
+      let cancelled = false;
+
+      async function loadDestination() {
+        try {
+          const response = await fetch("/api/account/shopping-destination", {
+            cache: "no-store",
+          });
+
+          if (cancelled) return;
+
+          if (response.status === 401) {
+            setIsLoggedIn(false);
+            return;
+          }
+
+          if (!response.ok) {
+            throw new Error("Unable to load destination.");
+          }
+
+          const data = await response.json();
+
+          setIsLoggedIn(true);
+          setDestination({
+            country: data.destination?.country ?? "",
+            city: data.destination?.city ?? "",
+            region: data.destination?.region ?? "",
+          });
+        } catch {
+          if (!cancelled) {
+            setDestinationMessage(
+              "Unable to load your saved destination. You can try again later.",
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setDestinationLoading(false);
+          }
+        }
+      }
+
+      void loadDestination();
+
+      return () => {
+        cancelled = true;
+      };
+    }, []);
+
+    const handleSaveDestination = async () => {
+      setDestinationSaving(true);
+      setDestinationMessage("");
+
+      try {
+        const response = await fetch("/api/account/shopping-destination", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(destination),
+        });
+
+        const data = await response.json();
+
+        if (response.status === 401) {
+          setIsLoggedIn(false);
+          setDestinationMessage("Please log in to save your destination.");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to save your destination.",
+          );
+        }
+
+        setDestination({
+          country: data.destination.country ?? "",
+          city: data.destination.city ?? "",
+          region: data.destination.region ?? "",
+        });
+
+        setDestinationMessage(data.message);
+      } catch (error) {
+        setDestinationMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to save your destination.",
+        );
+      } finally {
+        setDestinationSaving(false);
+      }
+    };
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
@@ -251,6 +352,198 @@ export default function ShopperPage() {
               }}
             />
           </div>
+        </div>
+      </section>
+      
+      
+      {/* Shopping destination */}
+      <section
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "28px 24px 0",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #fed7aa",
+            background: "#fffaf5",
+            borderRadius: 16,
+            padding: 24,
+            display: "grid",
+            gap: 16,
+          }}
+        >
+          <div>
+            <p style={eyebrow}>YOUR DESTINATION</p>
+            <h2 style={{ ...sectionTitle, fontSize: 24 }}>
+              Where should we deliver?
+            </h2>
+            <p style={mutedText}>
+              Products ship from South Korea. Choose your destination to
+              personalize your shopping experience.
+            </p>
+          </div>
+
+          {destinationLoading ? (
+            <p style={mutedText}>Loading destination...</p>
+          ) : !isLoggedIn ? (
+            <p style={{ ...mutedText, margin: 0 }}>
+              You can browse products as a guest. Please log in to save your
+              destination and personalize your shopping experience.
+            </p>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                <label style={formLabel}>
+                  Country
+                  <input
+                    value={destination.country}
+                    onChange={(event) =>
+                      setDestination((current) => ({
+                        ...current,
+                        country: event.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Indonesia"
+                    maxLength={100}
+                    style={formInput}
+                  />
+                </label>
+
+                <label style={formLabel}>
+                  City
+                  <input
+                    value={destination.city}
+                    onChange={(event) =>
+                      setDestination((current) => ({
+                        ...current,
+                        city: event.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Jakarta"
+                    maxLength={100}
+                    style={formInput}
+                  />
+                </label>
+
+                <label style={formLabel}>
+                  Region / State (optional)
+                  <input
+                    value={destination.region}
+                    onChange={(event) =>
+                      setDestination((current) => ({
+                        ...current,
+                        region: event.target.value,
+                      }))
+                    }
+                    placeholder="e.g. DKI Jakarta"
+                    maxLength={100}
+                    style={formInput}
+                  />
+                </label>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 14,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleSaveDestination}
+                  disabled={destinationSaving || !destination.country.trim() ||
+                    !destination.city.trim()}
+                  style={{
+                    ...primaryButton,
+                    opacity:
+                      destinationSaving ||
+                      !destination.country.trim() ||
+                      !destination.city.trim()
+                        ? 0.6
+                        : 1,
+                  }}
+                >
+                  {destinationSaving ? "Saving..." : "Save destination"}
+                </button>
+
+                {destinationMessage && (
+                  <p
+                    role="status"
+                    style={{ ...mutedText, margin: 0 }}
+                  >
+                    {destinationMessage}
+                  </p>
+                )}
+              </div>
+
+              {destination.country && destination.city && (
+                <p style={{ ...mutedText, margin: 0 }}>
+                  Delivering to:{" "}
+                  <strong>
+                    {destination.city}
+                    {destination.region ? `, ${destination.region}` : ""}
+                    {`, ${destination.country}`}
+                  </strong>
+                </p>
+              )}
+            </>
+          )}
+
+          {!destinationLoading && !isLoggedIn && destinationMessage && (
+            <p role="status" style={{ ...mutedText, margin: 0 }}>
+              {destinationMessage}
+            </p>
+          )}
+        </div>
+      </section>
+      
+      {/* Shopping price information */}
+      <section
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "24px 24px 0",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
+          {[
+            "#ShipsFromKorea",
+            "#PurchaseFeeApplies",
+            "#ShippingCalculatedSeparately",
+          ].map((tag) => (
+            <span
+              key={tag}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                border: "1px solid #e5e5e5",
+                borderRadius: 999,
+                padding: "8px 12px",
+                background: "#ffffff",
+                color: "#57534e",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -474,7 +767,7 @@ export default function ShopperPage() {
                                 marginTop: 4,
                                 }}
                             >
-                                Indicative product price
+                                Product price estimate · Shipping excluded
                             </span>
                             </p>
 

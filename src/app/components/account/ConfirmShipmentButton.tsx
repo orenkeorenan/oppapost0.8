@@ -17,10 +17,18 @@ export function ConfirmShipmentButton({
   const [error, setError] = useState("");
   const router = useRouter();
 
+  
   async function handleConfirm() {
     if (loading) return;
 
+    const confirmed = window.confirm(
+      "Create this shipment using the selected packages and shipping method? Please make sure your delivery address and package details are correct."
+    );
+
+    if (!confirmed) return;
+
     setLoading(true);
+
     setError("");
 
     try {

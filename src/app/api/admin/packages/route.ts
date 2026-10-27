@@ -45,7 +45,29 @@ export async function POST(request: Request) {
       return auth.response;
     }
 
-    const body = await request.json();
+    let body: Record<string, unknown>;
+
+    try {
+      const parsed: unknown = await request.json();
+
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return NextResponse.json(
+          { error: "Request body must be a JSON object." },
+          { status: 400 }
+        );
+      }
+
+      body = parsed as Record<string, unknown>;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body." },
+        { status: 400 }
+      );
+    }
 
     const trackingNumber =
       typeof body.trackingNumber === "string"
@@ -64,8 +86,9 @@ export async function POST(request: Request) {
 
     if (
       !trackingNumber ||
-      !Number.isInteger(userId) ||
+      !Number.isSafeInteger(userId) ||
       userId <= 0 ||
+      typeof body.weight !== "number" ||
       !Number.isFinite(weight) ||
       weight <= 0 ||
       !source
@@ -73,7 +96,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Enter a valid customer, tracking number, source, and positive weight.",
+            "Enter a valid customer, tracking number, source, and positive numeric weight.",
         },
         { status: 400 }
       );
@@ -93,18 +116,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "No customer account was found for that selection." },
         { status: 404 }
-      );
-    }
-
-    const existingPackage = await prisma.package.findUnique({
-      where: { trackingNumber },
-      select: { id: true },
-    });
-
-    if (existingPackage) {
-      return NextResponse.json(
-        { error: "That tracking number is already registered." },
-        { status: 409 }
       );
     }
 
@@ -130,6 +141,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ package: newPackage }, { status: 201 });
   } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "That tracking number is already registered." },
+        { status: 409 }
+      );
+    }
+
     console.error("Admin package creation error:", error);
 
     return NextResponse.json(

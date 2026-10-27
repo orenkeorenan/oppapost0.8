@@ -38,12 +38,15 @@ export default async function ShippingMethodPage({
   }
 
   const packages = await prisma.package.findMany({
+    
     where: {
       id: { in: packageIds },
       userId: sessionUser.id,
       status: "READY_TO_SHIP",
       shipmentItems: { none: {} },
+      shippingGroupPackage: { is: null },
     },
+
     select: {
       id: true,
       trackingNumber: true,

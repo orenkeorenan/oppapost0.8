@@ -6,11 +6,35 @@ import { Prisma } from "@/generated/prisma/client";
 
 export async function POST(request: Request) {
   try {
+    
     const sessionUser = await requireUser();
-    const body = await request.json();
 
-    const packageIds: unknown = body.packageIds;
-    const method: unknown = body.method;
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON request body." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid shipment details." },
+        { status: 400 }
+      );
+    }
+
+    const data = body as Record<string, unknown>;
+    const packageIds: unknown = data.packageIds;
+    const method: unknown = data.method;
+
 
     if (
       !Array.isArray(packageIds) ||
@@ -57,6 +81,7 @@ export async function POST(request: Request) {
           userId: sessionUser.id,
           status: "READY_TO_SHIP",
           shipmentItems: { none: {} },
+          shippingGroupPackage: { is: null },
         },
         select: {
           id: true,
@@ -82,7 +107,7 @@ export async function POST(request: Request) {
             (total, pkg) => total + pkg.weight,
             0
           ),
-          status: "SHIPPING",
+          status: "PENDING_DISPATCH",
           recipientName: address.recipientName,
           deliveryPhone: address.phone,
           deliveryAddress: address.address,
@@ -102,16 +127,7 @@ export async function POST(request: Request) {
         },
       });
 
-      await tx.package.updateMany({
-        where: {
-          id: { in: packages.map((pkg) => pkg.id) },
-          userId: sessionUser.id,
-          status: "READY_TO_SHIP",
-        },
-        data: {
-          status: "SHIPPED",
-        },
-      });
+    
 
       return shipment;
     });

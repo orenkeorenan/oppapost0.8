@@ -8,13 +8,18 @@ export default async function PrepareShipmentPage() {
   const sessionUser = await requireUser();
 
   const packages = await prisma.package.findMany({
+    
     where: {
       userId: sessionUser.id,
       status: "READY_TO_SHIP",
       shipmentItems: {
         none: {},
       },
+      shippingGroupPackage: {
+        is: null,
+      },
     },
+
     orderBy: {
       createdAt: "desc",
     },

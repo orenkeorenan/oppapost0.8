@@ -1,6 +1,8 @@
+
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../../components/account/AccountLayout";
+import CreateShipmentForm from "./CreateShipmentForm";
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
@@ -8,6 +10,7 @@ function formatDate(date: Date | null) {
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
+    year: "numeric",
     timeZone: "UTC",
   });
 }
@@ -16,22 +19,49 @@ function formatMethod(method: string) {
   return method.replaceAll("_", " ");
 }
 
+function formatStatus(status: string) {
+  switch (status) {
+    case "PENDING_DISPATCH":
+      return "Awaiting Dispatch";
+    case "SHIPPING":
+      return "In Transit";
+    case "DELIVERED":
+      return "Delivered";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
+
 export default async function ShipmentsPage() {
   const sessionUser = await requireUser();
 
-  const user = await prisma.user.findUnique({
-    where: { id: sessionUser.id },
-    include: {
-      shipments: {
-        orderBy: { createdAt: "desc" },
+  const [shipments, readyPackages] = await Promise.all([
+    prisma.shipment.findMany({
+      where: { userId: sessionUser.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.package.findMany({
+      where: {
+        userId: sessionUser.id,
+        status: "READY_TO_SHIP",
+        shipmentItems: {
+          none: {},
+        },
+        shippingGroupPackage: null,
       },
-    },
-  });
-
-  const shipments = user?.shipments ?? [];
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        trackingNumber: true,
+        weight: true,
+      },
+    }),
+  ]);
 
   const activeShipments = shipments.filter(
-    (shipment) => shipment.status === "SHIPPING"
+    (shipment) =>
+      shipment.status === "PENDING_DISPATCH" ||
+      shipment.status === "SHIPPING"
   );
 
   const shipmentHistory = shipments.filter(
@@ -43,20 +73,34 @@ export default async function ShipmentsPage() {
       <div className="account-dashboard">
         <header className="account-dashboard__header">
           <h1>Shipments</h1>
-          <p>Track your international shipments and delivery history.</p>
+          <p>
+            Track your international shipments and delivery history.
+          </p>
         </header>
 
         <section>
-          <h2>Active Shipment</h2>
+          <h2>Create a Shipment</h2>
+          <p>
+            Select your ready-to-ship packages and choose a shipping method.
+          </p>
+
+          <CreateShipmentForm
+            packages={readyPackages.map((pkg) => ({
+              id: pkg.id,
+              trackingNumber: pkg.trackingNumber,
+              weight: pkg.weight,
+            }))}
+          />
+        </section>
+
+        <section>
+          <h2>Active Shipments ({activeShipments.length})</h2>
 
           {activeShipments.length === 0 ? (
-            <p>No active shipments.</p>
+            <p>No active shipments yet.</p>
           ) : (
             activeShipments.map((shipment) => (
-              <div
-                className="shipment-history-item"
-                key={shipment.id}
-              >
+              <div className="shipment-history-item" key={shipment.id}>
                 <div>
                   <strong>{shipment.trackingNumber}</strong>
                   <p>
@@ -66,10 +110,8 @@ export default async function ShipmentsPage() {
                 </div>
 
                 <div>
-                  <strong>Shipping</strong>
-                  <p>
-                    Estimated {formatDate(shipment.estimatedArrival)}
-                  </p>
+                  <strong>{formatStatus(shipment.status)}</strong>
+                  <p>{formatDate(shipment.createdAt)}</p>
                 </div>
 
                 <a
@@ -84,16 +126,13 @@ export default async function ShipmentsPage() {
         </section>
 
         <section>
-          <h2>Shipment History</h2>
+          <h2>Shipment History ({shipmentHistory.length})</h2>
 
           {shipmentHistory.length === 0 ? (
             <p>No completed shipments yet.</p>
           ) : (
             shipmentHistory.map((shipment) => (
-              <div
-                className="shipment-history-item"
-                key={shipment.id}
-              >
+              <div className="shipment-history-item" key={shipment.id}>
                 <div>
                   <strong>{shipment.trackingNumber}</strong>
                   <p>
@@ -115,7 +154,6 @@ export default async function ShipmentsPage() {
                 </a>
               </div>
             ))
-
           )}
         </section>
       </div>

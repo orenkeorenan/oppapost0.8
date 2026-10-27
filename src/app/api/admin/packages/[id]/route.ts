@@ -25,17 +25,43 @@ export async function PATCH(
     const { id } = await context.params;
     const packageId = Number(id);
 
-    if (!Number.isInteger(packageId) || packageId <= 0) {
+    if (!Number.isSafeInteger(packageId) || packageId <= 0) {
       return NextResponse.json(
         { error: "Invalid package ID." },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
-    const status = body.status as EditableStatus;
+    let body: Record<string, unknown>;
 
-    if (!allowedStatuses.includes(status)) {
+    try {
+      const parsed: unknown = await request.json();
+
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return NextResponse.json(
+          { error: "Request body must be a JSON object." },
+          { status: 400 }
+        );
+      }
+
+      body = parsed as Record<string, unknown>;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body." },
+        { status: 400 }
+      );
+    }
+
+    const status = body.status;
+
+    if (
+      typeof status !== "string" ||
+      !allowedStatuses.includes(status as EditableStatus)
+    ) {
       return NextResponse.json(
         { error: "Invalid package status." },
         { status: 400 }
@@ -83,14 +109,34 @@ export async function PATCH(
       );
     }
 
-    const updatedPackage = await prisma.package.update({
-      where: { id: packageId },
+    const result = await prisma.package.updateMany({
+      where: {
+        id: packageId,
+        status: existingPackage.status,
+        shipmentItems: {
+          none: {},
+        },
+      },
       data: {
-        status,
+        status: status as EditableStatus,
         ...(status === "RECEIVED" && !existingPackage.receivedAt
           ? { receivedAt: new Date() }
           : {}),
       },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Package status changed or the package was assigned to a shipment. Refresh and try again.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const updatedPackage = await prisma.package.findUnique({
+      where: { id: packageId },
       include: {
         user: {
           select: {

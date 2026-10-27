@@ -64,7 +64,9 @@ export default async function AccountPage() {
     .reduce((total, pkg) => total + pkg.weight, 0);
 
   const currentShipment = shipments.find(
-    (shipment) => shipment.status === "SHIPPING"
+    (shipment) =>
+      shipment.status === "PENDING_DISPATCH" ||
+      shipment.status === "SHIPPING"
   );
 
   const latestRequest = shopperRequests[0];
@@ -99,7 +101,11 @@ export default async function AccountPage() {
           <CurrentShipmentCard
             method={formatStatus(currentShipment.method)}
             weight={currentShipment.weight}
-            status={formatStatus(currentShipment.status)}
+            status={
+              currentShipment.status === "PENDING_DISPATCH"
+                ? "Pending Dispatch"
+                : formatStatus(currentShipment.status)
+            }
             shippedDate={formatDate(currentShipment.shippedAt)}
             estimatedArrival={formatDate(
               currentShipment.estimatedArrival
