@@ -57,7 +57,6 @@ export default function AdminShopperPage() {
   const [editServiceFee, setEditServiceFee] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [packageTrackingNumber, setPackageTrackingNumber] = useState("");
-  const [packageWeight, setPackageWeight] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -97,9 +96,6 @@ export default function AdminShopperPage() {
     );
     setEditStatus(request.status);
     setPackageTrackingNumber(request.package?.trackingNumber ?? "");
-    setPackageWeight(
-      request.package ? String(request.package.weight) : ""
-    );
     setSaveMessage("");
     setError("");
   };
@@ -110,7 +106,6 @@ export default function AdminShopperPage() {
     setEditServiceFee("");
     setEditStatus("");
     setPackageTrackingNumber("");
-    setPackageWeight("");
     setSaveMessage("");
   };
 
@@ -154,22 +149,9 @@ export default function AdminShopperPage() {
       currentRequest.status === "PURCHASED" &&
       !currentRequest.package;
 
-    let parsedPackageWeight: number | undefined;
-
-    if (registeringPackage) {
-      parsedPackageWeight = Number(packageWeight);
-
-      if (
-        !packageTrackingNumber.trim() ||
-        packageWeight.trim() === "" ||
-        !Number.isFinite(parsedPackageWeight) ||
-        parsedPackageWeight <= 0
-      ) {
-        setSaveMessage(
-          "Enter a package tracking number and a weight greater than zero."
-        );
-        return;
-      }
+    if (registeringPackage && !packageTrackingNumber.trim()) {
+      setSaveMessage("Enter the package tracking number.");
+      return;
     }
 
     setSaving(true);
@@ -187,11 +169,10 @@ export default function AdminShopperPage() {
           serviceFee,
           status: editStatus,
           ...(registeringPackage
-            ? {
-                packageTrackingNumber: packageTrackingNumber.trim(),
-                packageWeight: parsedPackageWeight,
-              }
-            : {}),
+  ? {
+      packageTrackingNumber: packageTrackingNumber.trim(),
+    }
+  : {}),
         }),
       });
 
@@ -673,28 +654,6 @@ export default function AdminShopperPage() {
                       }
                       disabled={saving}
                       placeholder="Enter tracking number"
-                      style={{
-                        width: "100%",
-                        boxSizing: "border-box",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </label>
-
-                  <label>
-                    <span style={{ display: "block", marginBottom: "8px" }}>
-                      Package weight (kg)
-                    </span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={packageWeight}
-                      onChange={(event) => setPackageWeight(event.target.value)}
-                      disabled={saving}
-                      placeholder="e.g. 1.25"
                       style={{
                         width: "100%",
                         boxSizing: "border-box",

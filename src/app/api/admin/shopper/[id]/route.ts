@@ -54,7 +54,6 @@ export async function PATCH(
       quotedPrice?: unknown;
       serviceFee?: unknown;
       packageTrackingNumber?: unknown;
-      packageWeight?: unknown;
     };
 
     try {
@@ -127,34 +126,27 @@ export async function PATCH(
 
     const creatingPackage = body.status === "PACKAGE_INCOMING";
 
-    let packageTrackingNumber: string | undefined;
-    let packageWeight: number | undefined;
+      let packageTrackingNumber: string | undefined;
 
-    if (creatingPackage) {
-      packageTrackingNumber =
-        typeof body.packageTrackingNumber === "string"
-          ? body.packageTrackingNumber.trim()
-          : "";
+      if (creatingPackage) {
+        packageTrackingNumber =
+          typeof body.packageTrackingNumber === "string"
+            ? body.packageTrackingNumber.trim()
+            : "";
 
-      packageWeight = body.packageWeight as number;
-
-      if (
-        !packageTrackingNumber ||
-        packageTrackingNumber.length > 200 ||
-        typeof body.packageWeight !== "number" ||
-        !Number.isFinite(packageWeight) ||
-        packageWeight <= 0
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "Enter a tracking number of 1–200 characters and a positive numeric package weight.",
-          },
-          { status: 400 }
-        );
+        if (
+          !packageTrackingNumber ||
+          packageTrackingNumber.length > 200
+        ) {
+          return NextResponse.json(
+            {
+              error: "Enter a tracking number of 1–200 characters.",
+            },
+            { status: 400 }
+          );
+        }
       }
-    }
-        
+
       
     
 
@@ -171,6 +163,7 @@ export async function PATCH(
         select: {
           id: true,
           userId: true,
+          productName: true,
           status: true,
           packageId: true,
           quotedPrice: true,
@@ -280,10 +273,11 @@ export async function PATCH(
           data: {
             userId: existing.userId,
             trackingNumber: packageTrackingNumber!,
+            productName: existing.productName,
             source: "PERSONAL_SHOPPER",
-            weight: packageWeight!,
-            status: "RECEIVED",
-            receivedAt: new Date(),
+            weight: 0,
+            status: "INCOMING",
+            receivedAt: null,
           },
           select: { id: true },
         });

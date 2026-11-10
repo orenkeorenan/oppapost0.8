@@ -791,12 +791,6 @@ export default function ShopperPage() {
                 ))
             )}
         </div>
-
-        {filteredProducts.length === 0 && (
-          <p style={{ color: "#737373", padding: "24px 0" }}>
-            No products found. Try another search or request the product below.
-          </p>
-        )}
       </section>
 
       {/* Request form */}

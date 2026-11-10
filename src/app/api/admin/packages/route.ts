@@ -125,7 +125,7 @@ export async function POST(request: Request) {
         trackingNumber,
         source,
         weight,
-        status: "RECEIVED",
+        status: "READY_TO_SHIP",
         receivedAt: new Date(),
       },
       include: {

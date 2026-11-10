@@ -6,6 +6,7 @@ import { KoreanAddressCard } from "../components/account/KoreanAddressCard";
 import { CurrentShipmentCard } from "../components/account/CurrentShipmentCard";
 import { PersonalShopperCard } from "../components/account/PersonalShopperCard";
 import { RecentActivity } from "../components/account/RecentActivity";
+import { ShoppingDestinationCard } from "../components/account/ShoppingDestinationCard";
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
@@ -54,9 +55,7 @@ export default async function AccountPage() {
   ).length;
 
   const warehouseWeight = packages
-    .filter((pkg) =>
-      ["RECEIVED", "READY_TO_SHIP"].includes(pkg.status)
-    )
+    .filter((pkg) => pkg.status === "READY_TO_SHIP")
     .reduce((total, pkg) => total + pkg.weight, 0);
 
   const readyToShipWeight = packages
@@ -88,13 +87,15 @@ export default async function AccountPage() {
           />
 
           {user.address ? (
-            <KoreanAddressCard/>
+            <KoreanAddressCard />
           ) : (
             <section>
               <h2>My Korean Address</h2>
               <p>No address has been registered yet.</p>
             </section>
           )}
+
+          <ShoppingDestinationCard />
         </div>
 
         {currentShipment ? (

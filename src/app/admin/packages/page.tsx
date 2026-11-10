@@ -11,7 +11,10 @@ type Customer = {
 
 type PackageRecord = {
   id: number;
+  userId: number;
   trackingNumber: string;
+  productName: string | null;
+  notes: string | null;
   source: "STORE" | "PERSONAL_SHOPPER";
   status: string;
   weight: number;
@@ -20,7 +23,7 @@ type PackageRecord = {
     id?: number;
     name: string;
     email: string;
-  };
+  } | null;
 };
 
 export default function AdminPackagesPage() {
@@ -37,6 +40,9 @@ export default function AdminPackagesPage() {
     const [weight, setWeight] = useState("");
     const [source, setSource] = useState<"STORE" | "PERSONAL_SHOPPER">("STORE");
     const [statusFilter, setStatusFilter] = useState("ALL");
+    const [packageErrors, setPackageErrors] = useState<
+      Record<number, string>
+    >({});
 
     const filteredPackages =
         statusFilter === "ALL"
@@ -138,7 +144,8 @@ export default function AdminPackagesPage() {
   
 async function updatePackageStatus(
   packageId: number,
-  status: string
+  status: string,
+  weight: number
 ) {
   setMessage("");
 
@@ -148,13 +155,16 @@ async function updatePackageStatus(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, weight }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      setMessage(data.error ?? "Unable to update package status.");
+      setPackageErrors((current) => ({
+        ...current,
+        [packageId]: data.error ?? "Unable to update package status.",
+      }));
       return;
     }
 
@@ -166,8 +176,11 @@ async function updatePackageStatus(
 
     setMessage("Package status updated successfully.");
   } catch {
-    setMessage("Unable to connect to the server.");
-  }
+      setPackageErrors((current) => ({
+        ...current,
+        [packageId]: "Unable to connect to the server.",
+    }));
+}
 }
 
 
@@ -378,11 +391,11 @@ async function updatePackageStatus(
                     onChange={(event) => setStatusFilter(event.target.value)}
                     style={{ ...inputStyle, width: "auto" }}
                 >
-                    <option value="ALL">All statuses</option>
-                    <option value="INCOMING">Incoming</option>
-                    <option value="RECEIVED">Received</option>
-                    <option value="READY_TO_SHIP">Ready to ship</option>
-                    <option value="SHIPPED">Shipped</option>
+                  <option value="ALL">All statuses</option>
+                  <option value="INCOMING">Incoming</option>
+                  <option value="READY_TO_SHIP">Ready to ship</option>
+                  <option value="RECEIVED">Received (Legacy)</option>
+                  <option value="SHIPPED">Shipped</option>
                 </select>
 
                 <button
@@ -431,18 +444,74 @@ async function updatePackageStatus(
               <tbody>
                 {filteredPackages.map((pkg) => (
                   <tr key={pkg.id}>
-                    <td style={cellStyle}>{pkg.trackingNumber}</td>
                     <td style={cellStyle}>
-                      <div>{pkg.user.name}</div>
-                      <small style={{ color: "#737373" }}>
-                        {pkg.user.email}
-                      </small>
+                      <div>{pkg.trackingNumber}</div>
+
+                      {pkg.productName && (
+                        <div style={{ marginTop: 4, fontSize: 13, color: "#525252" }}>
+                          Product: {pkg.productName}
+                        </div>
+                      )}
+
+                      {pkg.notes && (
+                        <div
+                          style={{
+                            marginTop: 4,
+                            fontSize: 12,
+                            color: "#737373",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          Notes: {pkg.notes}
+                        </div>
+                      )}
+                    </td>
+                    <td style={cellStyle}>
+                      {pkg.user ? (
+                        <>
+                          <div>{pkg.user.name}</div>
+                          <small style={{ color: "#737373" }}>
+                            {pkg.user.email}
+                          </small>
+                        </>
+                      ) : (
+                        <span style={{ color: "#b45309" }}>
+                          Customer unavailable (ID: {pkg.userId})
+                        </span>
+                      )}
                     </td>
                     <td style={cellStyle}>
                       {pkg.source === "STORE" ? "Customer purchase" : "Personal Shopper"}
                     </td>
-                    <td style={cellStyle}>{pkg.weight.toFixed(2)} kg</td>
-                    
+                    <td style={cellStyle}>
+                      {["INCOMING", "RECEIVED"].includes(pkg.status) ? (
+                        <>
+                          <input
+                            id={`weight-${pkg.id}`}
+                            type="number"
+                            min="0.01"
+                            max="1000"
+                            step="0.01"
+                            placeholder="Enter kg"
+                            style={{ ...inputStyle, width: 110 }}
+                          />
+
+                          {packageErrors[pkg.id] && (
+                            <small
+                              style={{
+                                display: "block",
+                                color: "#dc2626",
+                                marginTop: 4,
+                              }}
+                            >
+                              {packageErrors[pkg.id]}
+                            </small>
+                          )}
+                        </>
+                      ) : (
+                        `${pkg.weight.toFixed(2)} kg`
+                      )}
+                    </td>
                     <td style={cellStyle}>
                     {pkg.status === "SHIPPED" ? (
                         <span>SHIPPED</span>
@@ -458,28 +527,49 @@ async function updatePackageStatus(
                             }}
                         >
                             {(
-                            pkg.status === "INCOMING"
-                                ? ["INCOMING", "RECEIVED"]
+                              pkg.status === "INCOMING"
+                                ? ["INCOMING", "READY_TO_SHIP"]
                                 : pkg.status === "RECEIVED"
                                 ? ["RECEIVED", "READY_TO_SHIP"]
-                                : ["READY_TO_SHIP", "RECEIVED"]
+                                : [pkg.status]
                             ).map((status) => (
-                            <option key={status} value={status}>
+                              <option key={status} value={status}>
                                 {status.replaceAll("_", " ")}
-                            </option>
+                              </option>
                             ))}
                         </select>
 
                         <button
                             type="button"
                             onClick={() => {
-                            const select = document.getElementById(
+                              const select = document.getElementById(
                                 `status-${pkg.id}`
-                            ) as HTMLSelectElement | null;
+                              ) as HTMLSelectElement | null;
 
-                            if (select && select.value !== pkg.status) {
-                                void updatePackageStatus(pkg.id, select.value);
-                            }
+                              const weightInput = document.getElementById(
+                                `weight-${pkg.id}`
+                              ) as HTMLInputElement | null;
+
+                              if (select && select.value !== pkg.status) {
+                                const actualWeight = Number(weightInput?.value);
+
+                                if (
+                                  !Number.isFinite(actualWeight) ||
+                                  actualWeight <= 0 ||
+                                  actualWeight > 1000
+                                ) {
+                                  setPackageErrors((current) => ({
+                                    ...current,
+                                    [pkg.id]: "Please enter a valid package weight.",
+                                  }));
+                                  return;
+                                }
+                                void updatePackageStatus(
+                                  pkg.id,
+                                  select.value,
+                                  actualWeight
+                                );
+                              }
                             }}
                             style={secondaryButtonStyle}
                         >

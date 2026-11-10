@@ -2,6 +2,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../../components/account/AccountLayout";
+import WarehousePackageList from "./WarehousePackageList";
+import WarehousePackageForm from "./WarehousePackageForm";
 
 function formatStatus(status: string) {
   return status
@@ -29,6 +31,14 @@ export default async function WarehousePage() {
     include: {
       packages: {
         orderBy: { createdAt: "desc" },
+        include: {
+          shipmentItems: {
+            select: { id: true },
+          },
+          shippingGroupPackage: {
+            select: { id: true },
+          },
+        },
       },
     },
   });
@@ -43,6 +53,12 @@ export default async function WarehousePage() {
     (pkg) => pkg.status === "READY_TO_SHIP"
   );
 
+  const eligiblePackages = readyPackages.filter(
+    (pkg) =>
+      pkg.shipmentItems.length === 0 &&
+      pkg.shippingGroupPackage === null
+  );
+
   const shippedPackages = packages.filter(
     (pkg) => pkg.status === "SHIPPED"
   );
@@ -53,21 +69,14 @@ export default async function WarehousePage() {
 
   const processingPackages = packages.filter(
     (pkg) =>
-      ![
-        "INCOMING",
-        "READY_TO_SHIP",
-        "SHIPPED",
-        "DELIVERED",
-      ].includes(pkg.status)
+      ["RECEIVED"].includes(pkg.status)
   );
 
   const warehouseWeight = packages
-    .filter((pkg) =>
-      ["RECEIVED", "READY_TO_SHIP"].includes(pkg.status)
-    )
+    .filter((pkg) => pkg.status === "READY_TO_SHIP")
     .reduce((total, pkg) => total + pkg.weight, 0);
 
-  const readyToShipWeight = readyPackages.reduce(
+  const readyToShipWeight = eligiblePackages.reduce(
     (total, pkg) => total + pkg.weight,
     0
   );
@@ -90,8 +99,17 @@ export default async function WarehousePage() {
             <div className="warehouse-package" key={pkg.id}>
               <div>
                 <strong>{pkg.trackingNumber}</strong>
-                <p>{formatDate(pkg.receivedAt)}</p>
-                <p>Package ID: {pkg.id}</p>
+                  {pkg.productName && (
+                    <p>Product: {pkg.productName}</p>
+                  )}
+
+                  {pkg.notes && (
+                    <p style={{ whiteSpace: "pre-wrap" }}>
+                      Notes: {pkg.notes}
+                    </p>
+                  )}
+
+                  <p>{formatDate(pkg.receivedAt)}</p>
               </div>
 
               <div>
@@ -118,6 +136,7 @@ export default async function WarehousePage() {
 
         <section>
           <h2>Warehouse Summary</h2>
+          <WarehousePackageForm />
 
           <div className="warehouse-stats">
             <div className="warehouse-stat">
@@ -135,16 +154,27 @@ export default async function WarehousePage() {
             <div className="warehouse-stat">
               <span>Ready to Ship</span>
               <strong>{readyToShipWeight.toFixed(1)} kg</strong>
-              <small>{readyPackages.length} available packages</small>
+              <small>{eligiblePackages.length} available packages</small>
             </div>
           </div>
         </section>
 
-        {renderPackages(
-          "Ready to Ship",
-          readyPackages,
-          "No packages are currently ready to ship."
-        )}
+        <section>
+          <h2>Ready to Ship ({eligiblePackages.length})</h2>
+          <p>
+            Packages are selected automatically. Uncheck any packages
+            you want to keep for a future shipment.
+          </p>
+
+          <WarehousePackageList
+            packages={eligiblePackages.map((pkg) => ({
+              id: pkg.id,
+              trackingNumber: pkg.trackingNumber,
+              weight: pkg.weight,
+              source: pkg.source,
+            }))}
+          />
+        </section>
 
         {renderPackages(
           "Being Processed",

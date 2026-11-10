@@ -1,28 +1,19 @@
-
 import { NextResponse } from "next/server";
-import { requireAdminApi } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const allowedStatuses = [
-  "INCOMING",
-  "RECEIVED",
-  "READY_TO_SHIP",
-] as const;
-
-type EditableStatus = (typeof allowedStatuses)[number];
+import { requireAdminApi } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminApi();
+
+  if (auth.response) {
+    return auth.response;
+  }
+
   try {
-    const auth = await requireAdminApi();
-
-    if (auth.response) {
-      return auth.response;
-    }
-
-    const { id } = await context.params;
+    const { id } = await params;
     const packageId = Number(id);
 
     if (!Number.isSafeInteger(packageId) || packageId <= 0) {
@@ -32,43 +23,43 @@ export async function PATCH(
       );
     }
 
-    let body: Record<string, unknown>;
+    const body: unknown = await request.json();
 
-    try {
-      const parsed: unknown = await request.json();
-
-      if (
-        typeof parsed !== "object" ||
-        parsed === null ||
-        Array.isArray(parsed)
-      ) {
-        return NextResponse.json(
-          { error: "Request body must be a JSON object." },
-          { status: 400 }
-        );
-      }
-
-      body = parsed as Record<string, unknown>;
-    } catch {
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
       return NextResponse.json(
         { error: "Invalid request body." },
         { status: 400 }
       );
     }
 
-    const status = body.status;
+    const data = body as Record<string, unknown>;
 
-    if (
-      typeof status !== "string" ||
-      !allowedStatuses.includes(status as EditableStatus)
-    ) {
+    if (data.status !== "READY_TO_SHIP") {
       return NextResponse.json(
         { error: "Invalid package status." },
         { status: 400 }
       );
     }
 
-    const existingPackage = await prisma.package.findUnique({
+    const weight = data.weight;
+
+    if (
+      typeof weight !== "number" ||
+      !Number.isFinite(weight) ||
+      weight <= 0 ||
+      weight > 1000
+    ) {
+      return NextResponse.json(
+        { error: "Enter a valid package weight greater than 0 kg." },
+        { status: 400 }
+      );
+    }
+
+    const pkg = await prisma.package.findUnique({
       where: { id: packageId },
       include: {
         shipmentItems: {
@@ -77,34 +68,23 @@ export async function PATCH(
       },
     });
 
-    if (!existingPackage) {
+    if (!pkg) {
       return NextResponse.json(
         { error: "Package not found." },
         { status: 404 }
       );
     }
 
-    if (existingPackage.shipmentItems.length > 0) {
+    if (pkg.shipmentItems.length > 0) {
       return NextResponse.json(
-        {
-          error:
-            "This package is already assigned to a shipment. Its status is managed by the shipment workflow.",
-        },
+        { error: "This package is already assigned to a shipment." },
         { status: 409 }
       );
     }
 
-    const allowedTransitions: Record<string, string[]> = {
-      INCOMING: ["RECEIVED"],
-      RECEIVED: ["READY_TO_SHIP"],
-      READY_TO_SHIP: ["RECEIVED"],
-    };
-
-    if (!allowedTransitions[existingPackage.status]?.includes(status)) {
+    if (!["INCOMING", "RECEIVED"].includes(pkg.status)) {
       return NextResponse.json(
-        {
-          error: `Cannot change package status from ${existingPackage.status} to ${status}.`,
-        },
+        { error: "This package cannot be moved to this status." },
         { status: 409 }
       );
     }
@@ -112,48 +92,39 @@ export async function PATCH(
     const result = await prisma.package.updateMany({
       where: {
         id: packageId,
-        status: existingPackage.status,
+        status: pkg.status,
         shipmentItems: {
           none: {},
         },
       },
       data: {
-        status: status as EditableStatus,
-        ...(status === "RECEIVED" && !existingPackage.receivedAt
-          ? { receivedAt: new Date() }
-          : {}),
+        status: "READY_TO_SHIP",
+        weight,
+        receivedAt: pkg.receivedAt ?? new Date(),
       },
     });
 
     if (result.count === 0) {
       return NextResponse.json(
-        {
-          error:
-            "Package status changed or the package was assigned to a shipment. Refresh and try again.",
-        },
+        { error: "Package status changed. Please refresh and try again." },
         { status: 409 }
       );
     }
 
     const updatedPackage = await prisma.package.findUnique({
       where: { id: packageId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
     });
 
-    return NextResponse.json({ package: updatedPackage });
+    return NextResponse.json({
+      success: true,
+      message: "Package marked as ready to ship.",
+      package: updatedPackage,
+    });
   } catch (error) {
     console.error("Admin package status update error:", error);
 
     return NextResponse.json(
-      { error: "Unable to update package status." },
+      { error: "Failed to update package status." },
       { status: 500 }
     );
   }
