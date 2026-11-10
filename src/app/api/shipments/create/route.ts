@@ -1,13 +1,19 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/auth";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function POST(request: Request) {
   try {
     
-    const sessionUser = await requireUser();
+    const auth = await getApiUser();
+
+    if (auth.response) {
+      return auth.response;
+    }
+
+    const sessionUser = auth.user;
 
     let body: unknown;
 
