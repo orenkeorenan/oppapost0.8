@@ -15,6 +15,11 @@ type ShippingGroup = {
   status: string;
   createdAt: string;
   participants: string[];
+  yourPackages: {
+    id: number;
+    trackingNumber: string;
+    weight: number;
+  }[];
 };
 
 type CustomerPackage = {
@@ -310,6 +315,48 @@ export default function AccountShippingGroupsPage() {
                       : "The target weight has been reached."}
                   </p>
                 </div>
+
+                {group.yourPackages.length > 0 && (
+                  <div style={{ marginTop: 18 }}>
+                    <strong>Your packages in this group</strong>
+                    {group.yourPackages.map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 12,
+                          flexWrap: "wrap",
+                          padding: "10px 0",
+                          borderBottom: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <span>
+                          {pkg.trackingNumber} · {pkg.weight.toFixed(2)} kg
+                        </span>
+                        {["OPEN", "READY"].includes(group.status) && (
+                          <button
+                            type="button"
+                            disabled={workingGroupId === group.id}
+                            onClick={() => void leaveGroup(group.id, pkg.id)}
+                            style={{
+                              ...buttonStyle,
+                              background: "#fff",
+                              color: "#b42318",
+                              border: "1px solid #fecaca",
+                              opacity: workingGroupId === group.id ? 0.6 : 1,
+                            }}
+                          >
+                            {workingGroupId === group.id
+                              ? "Please wait..."
+                              : "Remove package"}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {group.status === "OPEN" && (
                   <div
