@@ -35,11 +35,24 @@ export async function GET() {
 
     const groups = await prisma.shippingGroup.findMany({
       where: {
-        destinationCountry: shoppingCountry,
-        status: "OPEN",
         OR: [
-          { destinationCity: shoppingCity },
-          { destinationCity: null },
+          {
+            destinationCountry: shoppingCountry,
+            status: "OPEN",
+            OR: [
+              { destinationCity: shoppingCity },
+              { destinationCity: null },
+            ],
+          },
+          {
+            packages: {
+              some: {
+                package: {
+                  userId: auth.user.id,
+                },
+              },
+            },
+          },
         ],
       },
       include: {
@@ -47,6 +60,9 @@ export async function GET() {
           select: {
             package: {
               select: {
+                id: true,
+                userId: true,
+                trackingNumber: true,
                 weight: true,
                 user: {
                   select: {
@@ -104,6 +120,13 @@ export async function GET() {
         status: group.status,
         createdAt: group.createdAt,
         participants,
+        yourPackages: group.packages
+          .filter((item) => item.package.userId === auth.user.id)
+          .map((item) => ({
+            id: item.package.id,
+            trackingNumber: item.package.trackingNumber,
+            weight: item.package.weight,
+          })),
       };
     });
 
