@@ -13,6 +13,8 @@ export async function GET() {
       where: {
         userId: auth.user.id,
         status: "READY_TO_SHIP",
+        shipmentItems: { none: {} },
+        shippingGroupPackage: { is: null },
       },
       select: {
         id: true,
