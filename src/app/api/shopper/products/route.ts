@@ -21,6 +21,7 @@ export async function GET() {
         imageUrl: true,
         productUrl: true,
         isPopular: true,
+        createdAt: true,
       },
     });
 
