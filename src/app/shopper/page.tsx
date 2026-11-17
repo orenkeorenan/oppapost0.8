@@ -16,6 +16,7 @@ type ShopProduct = {
   price: number;
   description: string;
   imageUrl: string | null;
+  productUrl: string | null;
   isPopular: boolean;
 };
 
@@ -51,6 +52,8 @@ export default function ShopperPage() {
     const [destinationMessage, setDestinationMessage] = useState("");
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [requestSubmitting, setRequestSubmitting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 8;
 
 
     useEffect(() => {
@@ -193,6 +196,9 @@ export default function ShopperPage() {
 
     return matchesCategory && matchesSearch;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const visibleProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleProductRequest = (productName: string) => {
     setRequestName(productName);
@@ -588,7 +594,7 @@ export default function ShopperPage() {
             <Search size={18} color="#737373" />
             <input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
               placeholder="Search products..."
               aria-label="Search products"
               style={{
@@ -616,7 +622,7 @@ export default function ShopperPage() {
             <button
               key={category}
               type="button"
-              onClick={() => setActiveCategory(category)}
+              onClick={() => { setActiveCategory(category); setCurrentPage(1); }}
               style={{
                 flexShrink: 0,
                 border: "1px solid",
@@ -656,7 +662,7 @@ export default function ShopperPage() {
                     No products found. Try another search or request the product below.
                 </p>
                 ) : (
-                filteredProducts.map((product) => (
+                visibleProducts.map((product) => (
                     <article
                         key={product.id}
                         style={{
@@ -771,26 +777,27 @@ export default function ShopperPage() {
                             </span>
                             </p>
 
-                            <button
-                            type="button"
-                            onClick={() => handleProductRequest(product.name)}
-                            style={{
-                                ...primaryButton,
-                                width: "100%",
-                                justifyContent: "center",
-                                padding: "12px 14px",
-                                fontSize: 14,
-                            }}
-                            >
-                            <ShoppingBag size={17} />
-                            Request Purchase
-                            </button>
+                            <a href={`/shopper/${product.id}`} style={{ display: "block", color: "#c2410c", fontSize: 14, fontWeight: 700, textDecoration: "none", marginBottom: 12 }}>
+                              View product details <ArrowRight size={15} style={{ display: "inline", verticalAlign: "middle" }} />
+                            </a>
+                            {product.productUrl ? (
+                              <a href={product.productUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#737373", fontSize: 13, textDecoration: "underline" }}>Visit original store</a>
+                            ) : (
+                              <span style={{ color: "#a3a3a3", fontSize: 13 }}>Source link not available</span>
+                            )}
                         </div>
                     </article>
                     // Keep your existing <article>...</article> here.
                 ))
             )}
         </div>
+        {filteredProducts.length > pageSize && (
+          <nav aria-label="Product pages" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginTop: 32 }}>
+            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} style={{ ...secondaryButton, opacity: currentPage === 1 ? 0.45 : 1 }}>Previous</button>
+            <span style={{ color: "#737373", fontSize: 14 }}>Page {currentPage} of {totalPages}</span>
+            <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} style={{ ...secondaryButton, opacity: currentPage === totalPages ? 0.45 : 1 }}>Next</button>
+          </nav>
+        )}
       </section>
 
       {/* Request form */}
@@ -887,6 +894,8 @@ export default function ShopperPage() {
     </main>
   );
 }
+
+const secondaryButton: React.CSSProperties = { display: "inline-flex", alignItems: "center", border: "1px solid #e5e5e5", borderRadius: 9, padding: "10px 14px", background: "#fff", color: "#404040", cursor: "pointer", font: "inherit", fontSize: 14, fontWeight: 600 };
 
 const primaryButton: React.CSSProperties = {
   display: "inline-flex",
