@@ -200,13 +200,7 @@ export default function ShopperPage() {
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
   const visibleProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const handleProductRequest = (productName: string) => {
-    setRequestName(productName);
-    setRequestMessage("");
-    document
-      .getElementById("product-request")
-      ?.scrollIntoView({ behavior: "smooth" });
-  };
+
 
   
 
