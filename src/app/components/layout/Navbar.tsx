@@ -15,7 +15,7 @@ export function Navbar({ onAddress }: NavbarProps) {
   const links = [
     { label: "Shipping", href: "/shipping" },
     { label: "Personal Shopper", href: "/shopper" },
-    { label: "Help Center", href: "/help" },
+    { label: "Help Center", href: "#contact" },
   ];
 
   const [open, setOpen] = useState(false);
