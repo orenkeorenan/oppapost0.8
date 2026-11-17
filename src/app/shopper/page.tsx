@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ExternalLink, Search, ShoppingBag, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { ArrowRight, ExternalLink, Search, Sparkles } from "lucide-react";
 
 type ShopProduct = {
   id: number;
@@ -103,8 +104,7 @@ export default function ShopperPage() {
   }, [products, category, search]);
 
   const popularProducts = filteredProducts.filter((product) => product.isPopular);
-  const newArrivals = filteredProducts
-    .filter((product) => !product.isPopular)
+  const newArrivals = [...filteredProducts]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const noSearchMatches = search.trim().length > 0 && filteredProducts.length === 0;
@@ -256,8 +256,8 @@ export default function ShopperPage() {
               <button type="button" onClick={() => openRequest(search.trim())} style={textButton}>Request a different product <ArrowRight size={15} /></button>
             </div>}
 
-            <ProductSection title="Popular Products" subtitle="Community favorites and Korean essentials" products={popularProducts} page={popularPage} setPage={setPopularPage} onRequest={openRequest} />
-            <ProductSection title="New Arrivals" subtitle="Recently added to our catalog" products={newArrivals} page={newPage} setPage={setNewPage} onRequest={openRequest} />
+            <ProductSection title="Popular Products" subtitle="Community favorites and Korean essentials" products={popularProducts} page={popularPage} setPage={setPopularPage} />
+            <ProductSection title="New Arrivals" subtitle="Recently added to our catalog" products={newArrivals} page={newPage} setPage={setNewPage} />
             {filteredProducts.length === 0 && <div style={emptyState}><p style={muted}>No products in this category yet.</p></div>}
           </>
         )}
@@ -288,7 +288,6 @@ function ProductSection({ title, subtitle, products, page, setPage, onRequest }:
   products: ShopProduct[];
   page: number;
   setPage: (page: number) => void;
-  onRequest: (name?: string) => void;
 }) {
   const pages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
   const visible = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
