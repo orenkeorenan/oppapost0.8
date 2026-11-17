@@ -4,7 +4,7 @@ import { Logo } from "../landing/Logo";
 const footerLinks = [
   { label: "Shipping", href: "/shipping" },
   { label: "Personal Shopper", href: "/shopper" },
-  { label: "Contact", href: "/help" },
+  { label: "Contact", href: "#contact" },
 ];
 
 export function Footer() {
