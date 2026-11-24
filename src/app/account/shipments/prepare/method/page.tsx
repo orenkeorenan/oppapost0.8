@@ -87,6 +87,17 @@ export default async function ShippingMethodPage({
           </p>
         </section>
 
+        <p>
+          <a
+            className="button button--outline"
+            href={`/account/shipments/prepare/address?packages=${packages
+              .map((pkg) => pkg.id)
+              .join(",")}`}
+          >
+            Back to Delivery Address
+          </a>
+        </p>
+
         <section>
           <h2>Available Methods</h2>
 
