@@ -1,5 +1,5 @@
 type Activity = {
-  id: number;
+  id: string;
   message: string;
   date: string;
 };
