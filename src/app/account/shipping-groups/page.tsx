@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AccountLayout } from "../../components/account/AccountLayout";
 
 type ShippingGroup = {
   id: number;
@@ -172,33 +173,15 @@ export default function AccountShippingGroupsPage() {
   };
 
   return (
-    <main
-      style={{
-        maxWidth: 1000,
-        margin: "40px auto",
-        padding: "0 24px 48px",
-        color: "#111827",
-      }}
-    >
-      <a
-        href="/account"
-        style={{
-          color: "#ea580c",
-          textDecoration: "none",
-          fontSize: 14,
-        }}
-      >
-        ← Back to Account
-      </a>
-
-      <h1 style={{ fontSize: 32, margin: "22px 0 8px" }}>
-        Shared Shipping Groups
-      </h1>
-
-      <p style={{ color: "#6b7280", marginBottom: 28 }}>
-        Join other shipments going to the same destination and track progress
-        toward the group weight target.
-      </p>
+    <AccountLayout>
+      <div className="account-dashboard">
+        <header className="account-dashboard__header">
+          <h1>Shared Shipping Groups</h1>
+          <p>
+            Join other shipments going to the same destination and track
+            progress toward the group weight target.
+          </p>
+        </header>
 
       {message && (
         <p
@@ -443,6 +426,7 @@ export default function AccountShippingGroupsPage() {
           </button>
         </>
       )}
-    </main>
+      </div>
+    </AccountLayout>
   );
 }
