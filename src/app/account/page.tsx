@@ -1,22 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { AccountLayout } from "../components/account/AccountLayout";
-import { WarehouseStatus } from "../components/account/WarehouseStatus";
-import { KoreanAddressCard } from "../components/account/KoreanAddressCard";
-import { CurrentShipmentCard } from "../components/account/CurrentShipmentCard";
-import { PersonalShopperCard } from "../components/account/PersonalShopperCard";
-import { RecentActivity } from "../components/account/RecentActivity";
-import { ShoppingDestinationCard } from "../components/account/ShoppingDestinationCard";
-
-function formatDate(date: Date | null) {
-  if (!date) return "—";
-
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-}
+import { DashboardOverview } from "../components/account/DashboardOverview";
 
 function formatStatus(status: string) {
   return status
@@ -28,10 +14,13 @@ function formatStatus(status: string) {
 export default async function AccountPage() {
   const sessionUser = await requireUser();
 
+  if (sessionUser.role === "ADMIN") {
+    redirect("/admin");
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
     include: {
-      address: true,
       packages: {
         include: {
           shipmentItems: { select: { id: true } },
@@ -55,35 +44,20 @@ export default async function AccountPage() {
   const shipments = user.shipments;
   const shopperRequests = user.personalShopperRequests;
 
-  const incomingCount = packages.filter(
-    (pkg) => pkg.status === "INCOMING"
-  ).length;
-
   const warehousePackages = packages.filter(
     (pkg) => pkg.status === "RECEIVED" || pkg.status === "READY_TO_SHIP"
   );
 
-  const warehouseWeight = warehousePackages.reduce(
-    (total, pkg) => total + pkg.weight,
-    0
+  const readyToShipPackages = packages.filter(
+    (pkg) =>
+      pkg.status === "READY_TO_SHIP" &&
+      pkg.shipmentItems.length === 0 &&
+      pkg.shippingGroupPackage === null
   );
 
-  const readyToShipWeight = packages
-    .filter(
-      (pkg) =>
-        pkg.status === "READY_TO_SHIP" &&
-        pkg.shipmentItems.length === 0 &&
-        pkg.shippingGroupPackage === null
-    )
-    .reduce((total, pkg) => total + pkg.weight, 0);
-
-  const currentShipment = shipments.find(
-    (shipment) =>
-      shipment.status === "PENDING_DISPATCH" ||
-      shipment.status === "SHIPPING"
+  const activeRequests = shopperRequests.filter(
+    (request) => request.status !== "COMPLETED" && request.status !== "CANCELLED"
   );
-
-  const latestRequest = shopperRequests[0];
 
   const activities = [
     ...packages.map((pkg) => ({
@@ -141,73 +115,32 @@ export default async function AccountPage() {
       }),
     }));
 
+  const latestRequest = shopperRequests[0];
+
   return (
     <AccountLayout>
-      <div className="account-dashboard">
-        <header className="account-dashboard__header">
-          <h1>My Oppapost</h1>
-          <p>Welcome back, {user.name}.</p>
-          <p>{user.email}</p>
-        </header>
-
-        <div className="dashboard-grid dashboard-grid--top">
-          <WarehouseStatus
-            incoming={incomingCount}
-            warehouseWeight={warehouseWeight}
-            readyToShipWeight={readyToShipWeight}
-          />
-
-          {user.address ? (
-            <KoreanAddressCard />
-          ) : (
-            <section>
-              <h2>My Korean Address</h2>
-              <p>No address has been registered yet.</p>
-            </section>
-          )}
-
-          <ShoppingDestinationCard />
-        </div>
-
-        {currentShipment ? (
-          <CurrentShipmentCard
-            method={formatStatus(currentShipment.method)}
-            weight={currentShipment.weight}
-            status={
-              currentShipment.status === "PENDING_DISPATCH"
-                ? "Pending Dispatch"
-                : formatStatus(currentShipment.status)
-            }
-            shippedDate={formatDate(currentShipment.shippedAt)}
-            estimatedArrival={formatDate(
-              currentShipment.estimatedArrival
-            )}
-            trackingNumber={currentShipment.trackingNumber}
-            shipmentId={currentShipment.id}
-          />
-        ) : (
-          <section>
-            <h2>Current Shipment</h2>
-            <p>You have no active shipments.</p>
-          </section>
-        )}
-
-        <div className="dashboard-grid dashboard-grid--bottom">
-          {latestRequest ? (
-            <PersonalShopperCard
-              productName={latestRequest.productName}
-              status={formatStatus(latestRequest.status)}
-            />
-          ) : (
-            <section>
-              <h2>Personal Shopper</h2>
-              <p>You have no requests yet.</p>
-            </section>
-          )}
-
-          <RecentActivity activities={activities} />
-        </div>
-      </div>
+      <DashboardOverview
+        name={user.name}
+        activeRequests={activeRequests.length}
+        warehousePackages={warehousePackages.length}
+        inTransitShipments={shipments.filter((shipment) => shipment.status === "SHIPPING").length}
+        readyToShipPackages={readyToShipPackages.length}
+        recentActivity={activities}
+        latestRequest={
+          latestRequest
+            ? {
+                productName: latestRequest.productName,
+                status: formatStatus(latestRequest.status),
+                createdAt: latestRequest.createdAt.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  timeZone: "UTC",
+                }),
+              }
+            : null
+        }
+      />
     </AccountLayout>
   );
 }
