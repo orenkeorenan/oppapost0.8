@@ -174,6 +174,12 @@ async function updatePackageStatus(
       )
     );
 
+    setPackageErrors((current) => {
+      const next = { ...current };
+      delete next[packageId];
+      return next;
+    });
+
     setMessage("Package status updated successfully.");
   } catch {
       setPackageErrors((current) => ({
@@ -396,6 +402,7 @@ async function updatePackageStatus(
                   <option value="READY_TO_SHIP">Ready to ship</option>
                   <option value="RECEIVED">Received (Legacy)</option>
                   <option value="SHIPPED">Shipped</option>
+                  <option value="DELIVERED">Delivered</option>
                 </select>
 
                 <button
@@ -513,7 +520,7 @@ async function updatePackageStatus(
                       )}
                     </td>
                     <td style={cellStyle}>
-                    {pkg.status === "SHIPPED" ? (
+                    {["SHIPPED", "DELIVERED"].includes(pkg.status) ? (
                         <span>SHIPPED</span>
                     ) : (
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
