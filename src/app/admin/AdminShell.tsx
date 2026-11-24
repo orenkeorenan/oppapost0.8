@@ -8,6 +8,7 @@ import {
   PackageCheck,
   ShoppingBag,
   Users,
+  ShoppingCart,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -17,6 +18,7 @@ const navigation = [
   { label: "Packages", href: "/admin/packages", icon: Package },
   { label: "Shipments", href: "/admin/shipments", icon: PackageCheck },
   { label: "Customers", href: "/admin/customers", icon: Users },
+  { label: "Shopper Requests", href: "/admin/shopper", icon: ShoppingCart },
 ];
 
 export default function AdminShell({ children }: { children: ReactNode }) {
