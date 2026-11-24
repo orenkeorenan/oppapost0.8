@@ -73,7 +73,9 @@ export default async function WarehousePage() {
   );
 
   const warehouseWeight = packages
-    .filter((pkg) => pkg.status === "READY_TO_SHIP")
+    .filter(
+      (pkg) => pkg.status === "RECEIVED" || pkg.status === "READY_TO_SHIP"
+    )
     .reduce((total, pkg) => total + pkg.weight, 0);
 
   const readyToShipWeight = eligiblePackages.reduce(
