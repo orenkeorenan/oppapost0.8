@@ -77,6 +77,8 @@ export function AccountLayout({ children }: AccountLayoutProps) {
   }
 
   return (
+    <>
+      <style jsx>{`\n        .account-sidebar__menu-button { display: none !important; }\n        .account-sidebar__navigation { display: block; }\n        @media (max-width: 768px) {\n          .account-sidebar__menu-button { display: inline-flex !important; }\n          .account-sidebar__navigation { display: none; }\n          .account-sidebar__navigation.is-open { display: block; }\n          .account-sidebar__navigation :global(nav) { display: flex; flex-direction: column; }\n          .account-sidebar__navigation :global(nav a) { flex-shrink: 0; }\n        }\n      `}</style>
     <div className="account-layout">
       <aside className="account-sidebar">
         <div style={brandRow}>
@@ -146,6 +148,7 @@ export function AccountLayout({ children }: AccountLayoutProps) {
 
       <main className="account-content">{children}</main>
     </div>
+    </>
   );
 }
 
