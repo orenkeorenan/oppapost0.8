@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type PersonalShopperCardProps = {
   productName: string;
   status: string;
@@ -23,7 +25,7 @@ export function PersonalShopperCard({
         <span>Personal Shopper Request</span>
       </div>
 
-      <button type="button">View Requests</button>
+      <Link href="/account/shopper">View Requests</Link>
     </section>
   );
 }
