@@ -32,7 +32,12 @@ export default async function AccountPage() {
     where: { id: sessionUser.id },
     include: {
       address: true,
-      packages: true,
+      packages: {
+        include: {
+          shipmentItems: { select: { id: true } },
+          shippingGroupPackage: { select: { id: true } },
+        },
+      },
       shipments: {
         orderBy: { createdAt: "desc" },
       },
@@ -54,12 +59,22 @@ export default async function AccountPage() {
     (pkg) => pkg.status === "INCOMING"
   ).length;
 
-  const warehouseWeight = packages
-    .filter((pkg) => pkg.status === "READY_TO_SHIP")
-    .reduce((total, pkg) => total + pkg.weight, 0);
+  const warehousePackages = packages.filter(
+    (pkg) => pkg.status === "RECEIVED" || pkg.status === "READY_TO_SHIP"
+  );
+
+  const warehouseWeight = warehousePackages.reduce(
+    (total, pkg) => total + pkg.weight,
+    0
+  );
 
   const readyToShipWeight = packages
-    .filter((pkg) => pkg.status === "READY_TO_SHIP")
+    .filter(
+      (pkg) =>
+        pkg.status === "READY_TO_SHIP" &&
+        pkg.shipmentItems.length === 0 &&
+        pkg.shippingGroupPackage === null
+    )
     .reduce((total, pkg) => total + pkg.weight, 0);
 
   const currentShipment = shipments.find(
