@@ -38,6 +38,15 @@ export async function GET(request: Request) {
         id: true,
         name: true,
         email: true,
+        phone: true,
+        createdAt: true,
+        _count: {
+          select: {
+            packages: true,
+            shipments: true,
+            personalShopperRequests: true,
+          },
+        },
       },
       orderBy: {
         name: "asc",
