@@ -282,7 +282,7 @@ export default function ShopperPage() {
   );
 }
 
-function ProductSection({ title, subtitle, products, page, setPage, onRequest }: {
+function ProductSection({ title, subtitle, products, page, setPage }: {
   title: string;
   subtitle: string;
   products: ShopProduct[];
