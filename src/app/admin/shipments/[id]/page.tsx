@@ -292,6 +292,74 @@ export default function AdminShipmentDetailPage() {
         </div>
       )}
 
+      <section
+        style={{
+          border: "1px solid #eee",
+          borderRadius: "12px",
+          padding: "20px",
+          marginBottom: "20px",
+        }}
+      >
+        <h2 style={{ fontSize: "18px", marginTop: 0 }}>Shipment Progress</h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+            gap: "12px",
+          }}
+        >
+          {[
+            {
+              title: "Shipment created",
+              date: shipment.createdAt,
+              complete: true,
+              current: shipment.status === "PENDING_DISPATCH",
+            },
+            {
+              title: "Dispatched",
+              date: shipment.shippedAt,
+              complete:
+                shipment.status === "SHIPPING" ||
+                shipment.status === "DELIVERED",
+              current: shipment.status === "SHIPPING",
+            },
+            {
+              title: "Delivered",
+              date: shipment.deliveredAt,
+              complete: shipment.status === "DELIVERED",
+              current: false,
+            },
+          ].map((step) => (
+            <div
+              key={step.title}
+              style={{
+                padding: "14px",
+                border: step.current
+                  ? "1px solid #fdba74"
+                  : "1px solid #e5e7eb",
+                borderRadius: "9px",
+                background: step.current ? "#fff7ed" : "#fafafa",
+              }}
+            >
+              <strong>
+                {step.complete ? "✓ " : "○ "}
+                {step.title}
+              </strong>
+              <p style={{ margin: "7px 0 0", color: "#666", fontSize: "13px" }}>
+                {formatDate(step.date)}
+              </p>
+              <p style={{ margin: "5px 0 0", color: "#777", fontSize: "12px" }}>
+                {step.complete
+                  ? "Completed"
+                  : step.current
+                    ? "Current stage"
+                    : "Upcoming"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div
         style={{
           display: "grid",
