@@ -113,6 +113,15 @@ export async function PATCH(
 
     const updatedPackage = await prisma.package.findUnique({
       where: { id: packageId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json({
