@@ -183,6 +183,7 @@ export default async function AccountPage() {
               currentShipment.estimatedArrival
             )}
             trackingNumber={currentShipment.trackingNumber}
+            shipmentId={currentShipment.id}
           />
         ) : (
           <section>
