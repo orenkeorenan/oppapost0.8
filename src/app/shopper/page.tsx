@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowRight, ExternalLink, Search, Sparkles } from "lucide-react";
+import { Logo } from "@/app/components/landing/Logo";
 
 type ShopProduct = {
   id: number;
@@ -176,6 +177,16 @@ export default function ShopperPage() {
 
   return (
     <main style={{ color: "#171717" }}>
+      <header style={shopperHeader}>
+        <Link href="/" aria-label="Oppapost home" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+          <Logo />
+        </Link>
+        <nav aria-label="Shopper navigation" style={shopperNav}>
+          <Link href="/" style={shopperNavLink}>Home</Link>
+          <Link href="/shipping" style={shopperNavLink}>Shipping</Link>
+          <Link href="/account" style={shopperNavCta}>My Account</Link>
+        </nav>
+      </header>
       <section style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)", padding: "64px 24px 54px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
           <span style={eyebrow}><Sparkles size={15} /> KOREAN PRODUCTS, DELIVERED WORLDWIDE</span>
@@ -332,6 +343,10 @@ function ProductSection({ title, subtitle, products, page, setPage }: {
   );
 }
 
+const shopperHeader: React.CSSProperties = { minHeight: 76, maxWidth: 1200, margin: "0 auto", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, boxSizing: "border-box" };
+const shopperNav: React.CSSProperties = { display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" };
+const shopperNavLink: React.CSSProperties = { color: "#404040", textDecoration: "none", fontSize: 14, fontWeight: 600 };
+const shopperNavCta: React.CSSProperties = { color: "#fff", background: "#ea580c", borderRadius: 9, padding: "10px 15px", textDecoration: "none", fontSize: 13, fontWeight: 700 };
 const eyebrow: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 7, color: "#c2410c", fontSize: 12, fontWeight: 750, letterSpacing: "1.2px", margin: "0 0 12px" };
 const muted: React.CSSProperties = { color: "#737373", fontSize: 14, lineHeight: 1.7, margin: 0 };
 const searchBox: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, maxWidth: 760, margin: "0 auto", padding: "0 18px", height: 62, background: "#fff", border: "1px solid #f5d0a8", borderRadius: 14, boxShadow: "0 12px 35px rgba(124,45,18,.10)", textAlign: "left" };
