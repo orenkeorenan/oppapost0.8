@@ -70,6 +70,62 @@ export default async function AccountPage() {
 
   const latestRequest = shopperRequests[0];
 
+  const activities = [
+    ...packages.map((pkg) => ({
+      id: `package-${pkg.id}`,
+      message: pkg.productName
+        ? `Package registered: ${pkg.productName}`
+        : `Package registered: ${pkg.trackingNumber}`,
+      date: pkg.createdAt,
+      timestamp: pkg.createdAt.getTime(),
+    })),
+    ...shipments.map((shipment) => {
+      const activityDate =
+        shipment.deliveredAt ?? shipment.shippedAt ?? shipment.createdAt;
+      const message =
+        shipment.status === "DELIVERED"
+          ? `Shipment delivered: ${shipment.trackingNumber}`
+          : shipment.status === "SHIPPING"
+            ? `Shipment dispatched: ${shipment.trackingNumber}`
+            : `Shipment created: ${shipment.trackingNumber}`;
+
+      return {
+        id: `shipment-${shipment.id}`,
+        message,
+        date: activityDate,
+        timestamp: activityDate.getTime(),
+      };
+    }),
+    ...shopperRequests.map((request) => {
+      const hasStatusUpdate =
+        request.updatedAt.getTime() > request.createdAt.getTime();
+      const activityDate = hasStatusUpdate
+        ? request.updatedAt
+        : request.createdAt;
+
+      return {
+        id: `shopper-${request.id}`,
+        message: hasStatusUpdate
+          ? `Personal Shopper update: ${request.productName} — ${formatStatus(request.status)}`
+          : `Personal Shopper request submitted: ${request.productName}`,
+        date: activityDate,
+        timestamp: activityDate.getTime(),
+      };
+    }),
+  ]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 6)
+    .map((activity) => ({
+      id: activity.id,
+      message: activity.message,
+      date: activity.date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      }),
+    }));
+
   return (
     <AccountLayout>
       <div className="account-dashboard">
@@ -133,7 +189,7 @@ export default async function AccountPage() {
             </section>
           )}
 
-          <RecentActivity activities={[]} />
+          <RecentActivity activities={activities} />
         </div>
       </div>
     </AccountLayout>
