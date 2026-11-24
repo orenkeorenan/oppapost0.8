@@ -93,43 +93,104 @@ export default async function ShipmentDetailsPage({
         </div>
 
         
-      {[
-        {
-          title: "Shipment Created",
-          date: shipment.createdAt,
-          complete: true,
-        },
-        {
-          title: "Dispatched",
-          date: shipment.shippedAt,
-          complete:
-            shipment.status === "SHIPPING" ||
-            shipment.status === "DELIVERED",
-        },
-        {
-          title: "Delivered",
-          date: shipment.deliveredAt,
-          complete: shipment.status === "DELIVERED",
-        },
-      ].map((step) => (
-        <div
-          key={step.title}
-          style={{
-            padding: "16px",
-            border: "1px solid #e5e7eb",
-            borderRadius: "10px",
-            background: step.complete ? "#f0fdf4" : "#fafafa",
-          }}
-        >
-          <strong>
-            {step.complete ? "✓ " : "○ "}
-            {step.title}
-          </strong>
-          <p style={{ marginBottom: 0, color: "#666" }}>
-            {formatDate(step.date)}
-          </p>
-        </div>
-      ))}
+      <div
+        aria-label="Shipment progress"
+        style={{
+          display: "grid",
+          gap: "12px",
+          marginTop: "20px",
+        }}
+      >
+        {[
+          {
+            title: "Shipment created",
+            description: "Your shipment request has been received.",
+            date: shipment.createdAt,
+            complete: true,
+            current: shipment.status === "PENDING_DISPATCH",
+          },
+          {
+            title: "Dispatched",
+            description:
+              shipment.status === "PENDING_DISPATCH"
+                ? "Your shipment is waiting to be dispatched from Korea."
+                : "Your shipment has left the origin facility.",
+            date: shipment.shippedAt,
+            complete:
+              shipment.status === "SHIPPING" ||
+              shipment.status === "DELIVERED",
+            current: shipment.status === "SHIPPING",
+          },
+          {
+            title: "Delivered",
+            description:
+              shipment.status === "DELIVERED"
+                ? "Your shipment has been marked as delivered."
+                : "This step will be updated after delivery.",
+            date: shipment.deliveredAt,
+            complete: shipment.status === "DELIVERED",
+            current: false,
+          },
+        ].map((step) => (
+          <div
+            key={step.title}
+            style={{
+              display: "flex",
+              gap: "14px",
+              alignItems: "flex-start",
+              padding: "16px",
+              border: step.current
+                ? "1px solid #fdba74"
+                : "1px solid #e5e7eb",
+              borderRadius: "10px",
+              background: step.current ? "#fff7ed" : "#fff",
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flex: "0 0 28px",
+                width: "28px",
+                height: "28px",
+                borderRadius: "50%",
+                background: step.complete ? "#dcfce7" : step.current ? "#ffedd5" : "#f3f4f6",
+                color: step.complete ? "#166534" : step.current ? "#9a3412" : "#6b7280",
+                fontWeight: 700,
+              }}
+            >
+              {step.complete ? "✓" : "○"}
+            </span>
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <strong>{step.title}</strong>
+                <span style={{ color: "#6b7280", fontSize: "13px" }}>
+                  {step.complete
+                    ? "Completed"
+                    : step.current
+                      ? "Current stage"
+                      : "Upcoming"}
+                </span>
+              </div>
+              <p style={{ margin: "5px 0 0", color: "#666" }}>
+                {step.description}
+              </p>
+              <p style={{ margin: "5px 0 0", color: "#6b7280", fontSize: "13px" }}>
+                {formatDate(step.date)}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
 
 
         <p>
