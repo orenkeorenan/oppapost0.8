@@ -61,8 +61,8 @@ async function main() {
   // Add clearly marked sample catalog products for storefront development.
   // Prices are illustrative and must be verified before commercial use.
   const sampleProducts = [
-    { name: "Round Lab 1025 Dokdo Cleanser", category: "Skincare", description: "Sample catalog listing for development. Verify current Korean retail price, details, and availability before publishing.", price: 12900, isPopular: true, sortOrder: 1 },
-    { name: "COSRX Advanced Snail 96 Mucin Essence", category: "Skincare", description: "Sample catalog listing for development. Verify current Korean retail price, details, and availability before publishing.", price: 17900, isPopular: true, sortOrder: 2 },
+    { name: "Round Lab 1025 Dokdo Cleanser", category: "Skincare", description: "A gentle, low-pH foaming cleanser from Round Lab. Development sample: verify Korean retail price and availability before publishing.", price: 12900, imageUrl: "https://roundlab.com/cdn/shop/files/Dokdo_cleanser_renewed.webp?v=1772852868&width=1946", productUrl: "https://roundlab.com/products/1025-dokdo-cleanser", isPopular: true, sortOrder: 1 },
+    { name: "COSRX Advanced Snail 96 Mucin Power Essence", category: "Skincare", description: "A hydrating essence formulated with 96% snail secretion filtrate. Development sample: verify Korean retail price and availability before publishing.", price: 17900, imageUrl: null, productUrl: "https://www.cosrx.com/products/advanced-snail-96-mucin-power-essence", isPopular: true, sortOrder: 2 },
     { name: "Beauty of Joseon Relief Sun", category: "Beauty", description: "Sample catalog listing for development. Verify current Korean retail price, details, and availability before publishing.", price: 16900, isPopular: true, sortOrder: 3 },
     { name: "Orion Choco Pie", category: "Snacks", description: "Sample catalog listing for development. Verify current Korean retail price, details, and availability before publishing.", price: 4900, isPopular: false, sortOrder: 4 },
     { name: "Pepero Original", category: "Snacks", description: "Sample catalog listing for development. Verify current Korean retail price, details, and availability before publishing.", price: 1800, isPopular: true, sortOrder: 5 },
@@ -70,10 +70,17 @@ async function main() {
   ];
 
   for (const product of sampleProducts) {
+    const { imageUrl = null, productUrl = null, ...productData } = product;
     const existing = await prisma.shopProduct.findFirst({ where: { name: product.name } });
-    if (!existing) {
+
+    if (existing) {
+      await prisma.shopProduct.update({
+        where: { id: existing.id },
+        data: { ...productData, imageUrl, productUrl, isActive: true },
+      });
+    } else {
       await prisma.shopProduct.create({
-        data: { ...product, imageUrl: null, productUrl: null, isActive: true },
+        data: { ...productData, imageUrl, productUrl, isActive: true },
       });
     }
   }
