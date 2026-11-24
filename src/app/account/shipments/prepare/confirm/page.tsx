@@ -89,6 +89,17 @@ export default async function ConfirmShipmentPage({
           </p>
         </header>
 
+        <p>
+          <a
+            className="button button--outline"
+            href={`/account/shipments/prepare/method?packages=${packages
+              .map((pkg) => pkg.id)
+              .join(",")}`}
+          >
+            Back to Shipping Method
+          </a>
+        </p>
+
         <section>
           <h2>Shipping Method</h2>
           <div className="warehouse-package">
