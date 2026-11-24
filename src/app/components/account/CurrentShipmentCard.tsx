@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type CurrentShipmentCardProps = {
   method: string;
   weight: number;
@@ -48,7 +50,7 @@ export function CurrentShipmentCard({
         <strong>{trackingNumber}</strong>
       </div>
 
-      <button type="button">Track Shipment</button>
+      <Link className="button" href={`/account/shipments/${shipmentId}`}>Track Shipment</Link>
     </section>
   );
 }
