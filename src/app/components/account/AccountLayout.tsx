@@ -13,6 +13,7 @@ const navigation = [
   { label: "Dashboard", href: "/account" },
   { label: "My Address", href: "/account/address" },
   { label: "Warehouse", href: "/account/warehouse" },
+  { label: "Shipping Groups", href: "/account/shipping-groups" },
   { label: "Shipments", href: "/account/shipments" },
   { label: "Personal Shopper", href: "/account/shopper" },
 ];
