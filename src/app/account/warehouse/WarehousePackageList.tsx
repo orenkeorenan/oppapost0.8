@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type WarehousePackage = {
@@ -23,6 +23,20 @@ export default function WarehousePackageList({ packages }: Props) {
   );
 
   const [navigating, setNavigating] = useState(false);
+
+  useEffect(() => {
+    const availableIds = new Set(packages.map((pkg) => pkg.id));
+
+    setSelectedIds((current) => {
+      const retainedIds = current.filter((id) => availableIds.has(id));
+      const retainedSet = new Set(retainedIds);
+      const newIds = packages
+        .map((pkg) => pkg.id)
+        .filter((id) => !retainedSet.has(id));
+
+      return [...retainedIds, ...newIds];
+    });
+  }, [packages]);
 
   const selectedPackages = useMemo(
     () => packages.filter((pkg) => selectedIds.includes(pkg.id)),
