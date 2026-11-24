@@ -6,6 +6,7 @@ type CurrentShipmentCardProps = {
   shippedDate: string;
   estimatedArrival: string;
   trackingNumber: string;
+  shipmentId: number;
   status: string;
 };
 
@@ -15,6 +16,7 @@ export function CurrentShipmentCard({
   shippedDate,
   estimatedArrival,
   trackingNumber,
+  shipmentId,
   status,
 }: CurrentShipmentCardProps) {
   return (
